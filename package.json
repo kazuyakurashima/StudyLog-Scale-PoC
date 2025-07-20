@@ -20,7 +20,7 @@
     "react-dom": "^19",
     "sass": "latest",
     "sass-embedded": "latest",
-    "shadcn": "latest",
+    "shadcn": "^2.9.2",
     "stylus": "latest",
     "sugarss": "latest",
     "tailwind-merge": "^2.5.5",

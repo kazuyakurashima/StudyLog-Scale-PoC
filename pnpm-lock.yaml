@@ -45,7 +45,7 @@ importers:
         specifier: latest
         version: 1.89.2
       shadcn:
-        specifier: latest
+        specifier: ^2.9.2
         version: 2.9.2(@types/node@24.0.15)(typescript@5.0.2)
       stylus:
         specifier: latest
