@@ -1,0 +1,242 @@
+# Supabase with React ベストプラクティス
+
+このプロジェクトでは、ReactアプリケーションでSupabaseを効果的に活用するためのベストプラクティスをまとめます。[公式ドキュメント](https://supabase.com/docs/guides/getting-started/quickstarts/reactjs)に基づいて記載しています。
+
+## 1. Supabaseクライアントの設定
+
+### 環境変数の管理
+- Viteプロジェクトでは`.env.local`ファイルを作成し、以下の環境変数を設定する：
+```env
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+### Supabaseクライアントの初期化
+```typescript
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+)
+```
+
+## 2. データベース操作のベストプラクティス
+
+### データ取得（Select）
+```typescript
+async function fetchData() {
+  const { data, error } = await supabase
+    .from('table_name')
+    .select('*')
+  
+  if (error) {
+    console.error('Error fetching data:', error)
+    return null
+  }
+  return data
+}
+```
+
+### データ挿入（Insert）
+```typescript
+async function insertData(newRecord) {
+  const { data, error } = await supabase
+    .from('table_name')
+    .insert([newRecord])
+    .select()
+  
+  if (error) {
+    console.error('Error inserting data:', error)
+    return null
+  }
+  return data
+}
+```
+
+### データ更新（Update）
+```typescript
+async function updateData(id, updates) {
+  const { data, error } = await supabase
+    .from('table_name')
+    .update(updates)
+    .eq('id', id)
+    .select()
+  
+  if (error) {
+    console.error('Error updating data:', error)
+    return null
+  }
+  return data
+}
+```
+
+## 3. Row Level Security (RLS) の実装
+
+### テーブルでRLSを有効化
+```sql
+alter table table_name enable row level security;
+```
+
+### 公開読み取りポリシーの作成
+```sql
+create policy "public can read table_name"
+on public.table_name
+for select to anon
+using (true);
+```
+
+### 認証ユーザー向けポリシー
+```sql
+create policy "users can manage their own data"
+on public.table_name
+for all to authenticated
+using (auth.uid() = user_id);
+```
+
+## 4. Reactでの状態管理
+
+### useEffectでのデータ取得
+```typescript
+import { useEffect, useState } from 'react'
+
+function MyComponent() {
+  const [data, setData] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true)
+        const { data, error } = await supabase
+          .from('table_name')
+          .select('*')
+        
+        if (error) throw error
+        setData(data)
+      } catch (error) {
+        setError(error.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  if (loading) return <div>Loading...</div>
+  if (error) return <div>Error: {error}</div>
+  
+  return (
+    <div>
+      {data.map(item => (
+        <div key={item.id}>{item.name}</div>
+      ))}
+    </div>
+  )
+}
+```
+
+## 5. リアルタイム機能の活用
+
+### リアルタイム購読の設定
+```typescript
+useEffect(() => {
+  const subscription = supabase
+    .channel('table_changes')
+    .on('postgres_changes', 
+      { event: '*', schema: 'public', table: 'table_name' },
+      (payload) => {
+        console.log('Change received!', payload)
+        // データの更新処理
+      }
+    )
+    .subscribe()
+
+  return () => {
+    subscription.unsubscribe()
+  }
+}, [])
+```
+
+## 6. エラーハンドリング
+
+### 一元的なエラーハンドリング
+```typescript
+function handleSupabaseError(error) {
+  console.error('Supabase error:', error)
+  
+  // ユーザーフレンドリーなエラーメッセージ
+  switch (error.code) {
+    case 'PGRST116':
+      return 'データが見つかりませんでした'
+    case '23505':
+      return 'すでに存在するデータです'
+    default:
+      return 'エラーが発生しました。しばらく後でもう一度お試しください。'
+  }
+}
+```
+
+## 7. 型安全性の確保
+
+### TypeScriptでの型定義
+```typescript
+interface StudyRecord {
+  id: number
+  date: string
+  subject: string
+  questions_total: number
+  questions_correct: number
+  emotion: string
+  comment?: string
+  created_at: string
+}
+
+// Supabaseクライアントに型を適用
+const supabase = createClient<Database>(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+)
+```
+
+## 8. パフォーマンス最適化
+
+### 必要なカラムのみを選択
+```typescript
+const { data } = await supabase
+  .from('study_records')
+  .select('id, subject, questions_total, questions_correct')
+  .limit(10)
+```
+
+### ページネーション
+```typescript
+const { data } = await supabase
+  .from('study_records')
+  .select('*')
+  .range(0, 9)  // 最初の10件
+```
+
+## 9. セキュリティ考慮事項
+
+- 機密情報は環境変数で管理し、コードに直接記述しない
+- RLSポリシーを適切に設定し、データアクセスを制限する
+- anonキーは公開されても安全だが、service_roleキーは絶対に公開しない
+- ユーザー入力は適切にサニタイズする
+
+## 10. デプロイメント
+
+### Vercelでのデプロイ時の環境変数設定
+```
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+---
+このルールに従って、安全で効率的なSupabase + Reactアプリケーションを構築してください。
+description:
+globs:
+alwaysApply: false
+---

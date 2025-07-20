@@ -1,261 +1,370 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
-import { Card } from "./ui/Card"
-import { Button } from "./ui/Button"
-import { Input } from "./ui/Input"
-import { Textarea } from "./ui/Textarea"
-import { EmotionButton } from "./ui/EmotionButton"
+import { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
+import type { StudyRecord } from '../lib/supabase'
 
-interface StudyRecord {
-  subject: string
-  totalQuestions: string
-  correctAnswers: string
-  emotion: string
-  comment: string
-}
+export default function StudyRecordForm() {
+  // フォームの状態管理
+  const [studyDate, setStudyDate] = useState('')
+  const [subject, setSubject] = useState('')
+  const [contentType, setContentType] = useState<'class' | 'homework'>('class')
+  const [questionsTotal, setQuestionsTotal] = useState('')
+  const [questionsCorrect, setQuestionsCorrect] = useState('')
+  const [emotion, setEmotion] = useState('')
+  const [comment, setComment] = useState('')
+  
+  // UI状態管理
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState<'success' | 'error'>('success')
+  const [existingRecords, setExistingRecords] = useState<StudyRecord[]>([])
+  const [nextAttemptNumber, setNextAttemptNumber] = useState(1)
 
-const StudyRecordForm: React.FC = () => {
-  const [record, setRecord] = useState<StudyRecord>({
-    subject: "",
-    totalQuestions: "",
-    correctAnswers: "",
-    emotion: "",
-    comment: "",
-  })
+  // コンポーネント初期化時に今日の日付を設定
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0]
+    setStudyDate(today)
+  }, [])
 
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showSuccess, setShowSuccess] = useState(false)
+  // 学習実施日、科目、種別が変更された時に履歴をチェック
+  useEffect(() => {
+    if (studyDate && subject && contentType) {
+      checkExistingRecords()
+    }
+  }, [studyDate, subject, contentType])
 
-  const subjects = [
-    { value: "japanese", label: "国語", icon: "📚", color: "from-red-400 to-pink-500" },
-    { value: "math", label: "算数", icon: "🔢", color: "from-blue-400 to-cyan-500" },
-    { value: "science", label: "理科", icon: "🔬", color: "from-green-400 to-emerald-500" },
-    { value: "social", label: "社会", icon: "🌍", color: "from-yellow-400 to-orange-500" },
-  ]
+  const checkExistingRecords = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('study_records')
+        .select('*')
+        .eq('study_date', studyDate)
+        .eq('subject', subject)
+        .eq('content_type', contentType)
+        .order('attempt_number', { ascending: true })
 
-  const emotions = [
-    { value: "excellent", emoji: "😊", label: "よくできた", color: "from-green-400 to-emerald-500" },
-    { value: "normal", emoji: "😐", label: "ふつう", color: "from-yellow-400 to-orange-500" },
-    { value: "difficult", emoji: "😞", label: "むずかしかった", color: "from-red-400 to-pink-500" },
-  ]
+      if (error) throw error
 
-  const handleInputChange = (field: keyof StudyRecord, value: string) => {
-    setRecord((prev) => ({ ...prev, [field]: value }))
+      setExistingRecords(data || [])
+      setNextAttemptNumber((data?.length || 0) + 1)
+    } catch (error) {
+      console.error('履歴取得エラー:', error)
+    }
   }
 
-  const handleSubmit = async () => {
-    if (!record.subject || !record.totalQuestions || !record.correctAnswers || !record.emotion) {
-      alert("必須項目を入力してください")
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!studyDate || !subject || !contentType || !questionsTotal || !questionsCorrect || !emotion) {
+      setMessage('すべての項目を入力してください')
+      setMessageType('error')
       return
     }
 
-    const total = Number.parseInt(record.totalQuestions)
-    const correct = Number.parseInt(record.correctAnswers)
+    const total = parseInt(questionsTotal)
+    const correct = parseInt(questionsCorrect)
 
-    if (correct > total) {
-      alert("正答数は問題数以下にしてください")
+    if (isNaN(total) || isNaN(correct) || total <= 0 || correct < 0 || correct > total) {
+      setMessage('問題数と正解数を正しく入力してください')
+      setMessageType('error')
       return
     }
 
-    setIsSubmitting(true)
+    try {
+      setLoading(true)
+      setMessage('')
 
-    // シミュレート保存処理
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+      const today = new Date().toISOString().split('T')[0]
 
-    console.log({
-      ...record,
-      totalQuestions: total,
-      correctAnswers: correct,
-      date: new Date().toISOString().split("T")[0],
-    })
+      const { error } = await supabase
+        .from('study_records')
+        .insert([{
+          date: today, // 記録をつけた日（今日）
+          study_date: studyDate, // 学習内容の実施日
+          subject,
+          content_type: contentType,
+          attempt_number: nextAttemptNumber,
+          questions_total: total,
+          questions_correct: correct,
+          emotion,
+          comment: comment.trim() || null
+        }])
 
-    setIsSubmitting(false)
-    setShowSuccess(true)
+      if (error) throw error
 
-    // 成功メッセージを3秒後に非表示
-    setTimeout(() => {
-      setShowSuccess(false)
-      setRecord({
-        subject: "",
-        totalQuestions: "",
-        correctAnswers: "",
-        emotion: "",
-        comment: "",
-      })
-    }, 3000)
+      setMessage('✅ 学習記録を保存しました！')
+      setMessageType('success')
+      
+      // フォームをリセット（一部の項目は保持）
+      setQuestionsTotal('')
+      setQuestionsCorrect('')
+      setEmotion('')
+      setComment('')
+      
+      // 履歴を更新
+      await checkExistingRecords()
+      
+    } catch (error) {
+      console.error('❌ 保存エラー:', error)
+      setMessage('保存に失敗しました。もう一度お試しください。')
+      setMessageType('error')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const selectedSubject = subjects.find((s) => s.value === record.subject)
-  const selectedEmotion = emotions.find((e) => e.value === record.emotion)
+  const getSubjectLabel = (subjectKey: string) => {
+    const subjects: Record<string, string> = {
+      aptitude: '適性',
+      japanese: '国語',
+      math: '算数',
+      science: '理科',
+      social: '社会'
+    }
+    return subjects[subjectKey] || subjectKey
+  }
+
+  const formatHistoryDisplay = (records: StudyRecord[]) => {
+    if (records.length === 0) return ''
+    
+    return records.map(record => 
+      `${record.questions_correct}/${record.questions_total}`
+    ).join(' → ')
+  }
 
   return (
-    <div className="container mx-auto px-4 py-6 sm:py-8 max-w-4xl">
+    <div className="max-w-2xl mx-auto p-6">
       {/* ヘッダー */}
-      <div className="text-center mb-8 sm:mb-12">
-        <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mb-4 shadow-lg">
-          <span className="text-2xl sm:text-3xl">📖</span>
-        </div>
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-          Studyログ
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+          📝 学習記録
         </h1>
-        <p className="text-lg sm:text-xl text-gray-600 font-medium">今日の学習を記録しよう！</p>
+        <p className="text-slate-600 text-lg">今日のがんばりを記録しよう！</p>
       </div>
 
-      {/* 成功メッセージ */}
-      {showSuccess && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 backdrop-blur-sm">
-          <Card className="mx-4 p-8 text-center animate-bounce">
-            <div className="text-6xl mb-4">🎉</div>
-            <h3 className="text-2xl font-bold text-green-600 mb-2">すばらしい！</h3>
-            <p className="text-gray-600">学習記録を保存しました</p>
-          </Card>
+      {/* 履歴表示 */}
+      {existingRecords.length > 0 && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+          <h3 className="font-bold text-blue-800 mb-2">📚 この学習内容の履歴</h3>
+          <div className="text-blue-700">
+            <div className="font-medium">
+              {getSubjectLabel(subject)}（{contentType === 'class' ? '授業' : '宿題'}）
+              - {new Date(studyDate).toLocaleDateString('ja-JP')}実施分
+            </div>
+            <div className="text-lg mt-1">
+              これまでの成績: {formatHistoryDisplay(existingRecords)}
+            </div>
+            <div className="text-sm text-blue-600 mt-1">
+              今回は{nextAttemptNumber}回目の挑戦です
+            </div>
+          </div>
         </div>
       )}
 
-      {/* メインフォーム */}
-      <Card className="shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
-        <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6 sm:p-8 rounded-t-2xl">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white text-center flex items-center justify-center gap-3">
-            <span className="text-3xl">✨</span>
-            今日の学習記録
-            <span className="text-3xl">✨</span>
-          </h2>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* 学習実施日の選択 */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border">
+          <label className="block text-lg font-bold text-slate-700 mb-3">
+            📅 いつの学習内容ですか？
+          </label>
+          <input
+            type="date"
+            value={studyDate}
+            onChange={(e) => setStudyDate(e.target.value)}
+            max={new Date().toISOString().split('T')[0]}
+            className="w-full text-lg p-4 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+            required
+          />
+          <p className="text-sm text-slate-500 mt-2">
+            今日復習した学習内容が、いつ実施されたものかを選択してください
+          </p>
         </div>
 
-        <div className="p-6 sm:p-8 lg:p-10 space-y-8 sm:space-y-10">
-          {/* 科目選択 */}
-          <div className="space-y-4">
-            <label className="block text-xl sm:text-2xl font-bold text-gray-800">📚 科目を選んでね</label>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              {subjects.map((subject) => (
-                <button
-                  key={subject.value}
-                  onClick={() => handleInputChange("subject", subject.value)}
-                  className={`p-4 sm:p-6 rounded-2xl border-2 transition-all duration-300 transform hover:scale-105 ${
-                    record.subject === subject.value
-                      ? `bg-gradient-to-r ${subject.color} text-white border-transparent shadow-lg`
-                      : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-md"
-                  }`}
-                >
-                  <div className="text-2xl sm:text-3xl mb-2">{subject.icon}</div>
-                  <div className="font-bold text-sm sm:text-base">{subject.label}</div>
-                </button>
-              ))}
+        {/* 科目選択 */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border">
+          <label className="block text-lg font-bold text-slate-700 mb-3">
+            📚 科目を選択
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[
+              { key: 'aptitude', label: '適性', icon: '🧠', color: 'purple' },
+              { key: 'japanese', label: '国語', icon: '📚', color: 'rose' },
+              { key: 'math', label: '算数', icon: '🔢', color: 'blue' },
+              { key: 'science', label: '理科', icon: '🔬', color: 'green' },
+              { key: 'social', label: '社会', icon: '🌍', color: 'amber' },
+            ].map((subjectOption) => (
+              <button
+                key={subjectOption.key}
+                type="button"
+                onClick={() => setSubject(subjectOption.key)}
+                className={`p-4 rounded-xl border-2 transition-all font-medium ${
+                  subject === subjectOption.key
+                    ? subjectOption.color === 'purple' ? 'border-purple-400 bg-purple-50 text-purple-700' :
+                      subjectOption.color === 'rose' ? 'border-rose-400 bg-rose-50 text-rose-700' :
+                      subjectOption.color === 'blue' ? 'border-blue-400 bg-blue-50 text-blue-700' :
+                      subjectOption.color === 'green' ? 'border-green-400 bg-green-50 text-green-700' :
+                      subjectOption.color === 'amber' ? 'border-amber-400 bg-amber-50 text-amber-700' :
+                      'border-blue-400 bg-blue-50 text-blue-700'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                }`}
+              >
+                <div className="text-2xl mb-1">{subjectOption.icon}</div>
+                <div className="text-sm">{subjectOption.label}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 授業・宿題の種別選択 */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border">
+          <label className="block text-lg font-bold text-slate-700 mb-3">
+            🎯 授業？宿題？
+          </label>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={() => setContentType('class')}
+              className={`p-4 rounded-xl border-2 transition-all font-medium ${
+                contentType === 'class'
+                  ? 'border-blue-400 bg-blue-50 text-blue-700'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+              }`}
+            >
+              <div className="text-3xl mb-2">🏫</div>
+              <div className="font-bold">授業</div>
+              <div className="text-sm">授業で習った内容</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setContentType('homework')}
+              className={`p-4 rounded-xl border-2 transition-all font-medium ${
+                contentType === 'homework'
+                  ? 'border-orange-400 bg-orange-50 text-orange-700'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+              }`}
+            >
+              <div className="text-3xl mb-2">📝</div>
+              <div className="font-bold">宿題</div>
+              <div className="text-sm">宿題として出された内容</div>
+            </button>
+          </div>
+        </div>
+
+        {/* 問題数と正解数 */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border">
+          <label className="block text-lg font-bold text-slate-700 mb-3">
+            🎯 今回の成績
+          </label>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-2">
+                問題数（全体）
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="200"
+                value={questionsTotal}
+                onChange={(e) => setQuestionsTotal(e.target.value)}
+                className="w-full text-lg p-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                placeholder="例: 10"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-2">
+                正解数
+              </label>
+              <input
+                type="number"
+                min="0"
+                max={questionsTotal || "200"}
+                value={questionsCorrect}
+                onChange={(e) => setQuestionsCorrect(e.target.value)}
+                className="w-full text-lg p-3 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                placeholder="例: 7"
+                required
+              />
             </div>
           </div>
-
-          {/* 問題数・正答数 */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
-            <div className="space-y-4">
-              <label className="block text-xl sm:text-2xl font-bold text-gray-800">📝 問題数</label>
-              <div className="relative">
-                <Input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={record.totalQuestions}
-                  onChange={(e) => handleInputChange("totalQuestions", e.target.value)}
-                  className="text-center text-xl sm:text-2xl font-bold h-16 sm:h-20 pr-12"
-                  placeholder="20"
-                />
-                <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-xl sm:text-2xl font-bold text-gray-500">
-                  問
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <label className="block text-xl sm:text-2xl font-bold text-gray-800">✅ 正答数</label>
-              <div className="relative">
-                <Input
-                  type="number"
-                  min="0"
-                  max={record.totalQuestions || "100"}
-                  value={record.correctAnswers}
-                  onChange={(e) => handleInputChange("correctAnswers", e.target.value)}
-                  className="text-center text-xl sm:text-2xl font-bold h-16 sm:h-20 pr-12"
-                  placeholder="18"
-                />
-                <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-xl sm:text-2xl font-bold text-gray-500">
-                  問
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* 正答率表示 */}
-          {record.totalQuestions && record.correctAnswers && (
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-2xl border border-blue-100">
-              <div className="text-center">
-                <div className="text-sm sm:text-base text-gray-600 mb-2">正答率</div>
-                <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  {Math.round((Number.parseInt(record.correctAnswers) / Number.parseInt(record.totalQuestions)) * 100)}%
-                </div>
-              </div>
+          {questionsTotal && questionsCorrect && (
+            <div className="mt-3 text-center">
+              <span className="text-2xl font-bold text-blue-600">
+                正答率: {Math.round((parseInt(questionsCorrect) / parseInt(questionsTotal)) * 100)}%
+              </span>
             </div>
           )}
-
-          {/* 感情評価 */}
-          <div className="space-y-4">
-            <label className="block text-xl sm:text-2xl font-bold text-gray-800">💭 今日の気持ちは？</label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {emotions.map((emotion) => (
-                <EmotionButton
-                  key={emotion.value}
-                  emotion={emotion}
-                  isSelected={record.emotion === emotion.value}
-                  onClick={() => handleInputChange("emotion", emotion.value)}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* コメント */}
-          <div className="space-y-4">
-            <label className="block text-xl sm:text-2xl font-bold text-gray-800">💬 一言コメント（任意）</label>
-            <Textarea
-              value={record.comment}
-              onChange={(e) => handleInputChange("comment", e.target.value)}
-              maxLength={100}
-              className="min-h-24 sm:min-h-32 text-base sm:text-lg resize-none"
-              placeholder="今日の学習で感じたことを書いてみよう..."
-            />
-            <div className="text-right text-sm text-gray-500">{record.comment.length}/100文字</div>
-          </div>
-
-          {/* 保存ボタン */}
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="w-full h-16 sm:h-20 text-xl sm:text-2xl font-bold bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
-          >
-            {isSubmitting ? (
-              <div className="flex items-center justify-center gap-3">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                保存中...
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-3">
-                <span className="text-2xl">💾</span>
-                学習記録を保存する
-              </div>
-            )}
-          </Button>
         </div>
-      </Card>
 
-      {/* 励ましメッセージ */}
-      <div className="text-center mt-8 sm:mt-12">
-        <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 sm:p-8 shadow-lg">
-          <div className="text-4xl sm:text-5xl mb-4">🌟</div>
-          <p className="text-lg sm:text-xl font-bold text-gray-700 mb-2">毎日コツコツ続けることが大切だよ！</p>
-          <p className="text-sm sm:text-base text-gray-600">記録を続けることで、きっと成長が見えるはず</p>
+        {/* 今日の気持ち */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border">
+          <label className="block text-lg font-bold text-slate-700 mb-3">
+            😊 今日の気持ち
+          </label>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { key: 'good', label: 'よくできた', icon: '😊', color: 'green' },
+              { key: 'normal', label: '普通', icon: '😐', color: 'blue' },
+              { key: 'hard', label: '難しかった', icon: '😞', color: 'orange' },
+            ].map((emotionOption) => (
+              <button
+                key={emotionOption.key}
+                type="button"
+                onClick={() => setEmotion(emotionOption.key)}
+                className={`p-4 rounded-xl border-2 transition-all font-medium ${
+                  emotion === emotionOption.key
+                    ? emotionOption.color === 'green' ? 'border-green-400 bg-green-50 text-green-700' :
+                      emotionOption.color === 'blue' ? 'border-blue-400 bg-blue-50 text-blue-700' :
+                      emotionOption.color === 'orange' ? 'border-orange-400 bg-orange-50 text-orange-700' :
+                      'border-blue-400 bg-blue-50 text-blue-700'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                }`}
+              >
+                <div className="text-3xl mb-2">{emotionOption.icon}</div>
+                <div className="text-sm">{emotionOption.label}</div>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+
+        {/* コメント */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border">
+          <label className="block text-lg font-bold text-slate-700 mb-3">
+            💭 今日の振り返り（自由記入）
+          </label>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            maxLength={300}
+            className="w-full min-h-24 p-4 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100 text-lg resize-none"
+            placeholder="今日の学習でどんなことを感じましたか？（任意）"
+          />
+          <div className="text-right text-sm text-slate-500 mt-2">
+            {comment.length}/300文字
+          </div>
+        </div>
+
+        {/* メッセージ表示 */}
+        {message && (
+          <div className={`p-4 rounded-xl font-medium ${
+            messageType === 'success' 
+              ? 'bg-green-100 border border-green-300 text-green-800' 
+              : 'bg-red-100 border border-red-300 text-red-800'
+          }`}>
+            {message}
+          </div>
+        )}
+
+        {/* 送信ボタン */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xl font-bold py-4 px-6 rounded-2xl hover:from-blue-600 hover:to-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? '保存中...' : '📝 学習記録を保存'}
+        </button>
+      </form>
     </div>
   )
 }
-
-export default StudyRecordForm
