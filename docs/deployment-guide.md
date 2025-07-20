@@ -48,6 +48,8 @@ vercel env add VITE_SUPABASE_URL
 vercel env add VITE_SUPABASE_ANON_KEY
 ```
 
+**重要**: プロジェクトルートに`vercel.json`が含まれており、ViteプロジェクトとしてBUILDされます。
+
 ##### **Netlify**
 ```bash
 # Netlifyでデプロイ
