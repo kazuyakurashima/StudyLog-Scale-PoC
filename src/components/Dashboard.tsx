@@ -99,6 +99,10 @@ export default function Dashboard() {
       })
 
       setFeedbacks(allFeedbacks || [])
+      
+
+      
+
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'データの取得に失敗しました'
@@ -163,27 +167,31 @@ export default function Dashboard() {
   const calculateContinueDays = (records: StudyRecord[]): number => {
     if (!records.length) return 0
 
-    // 日付別にグループ化
-    const dateGroups = new Map<string, StudyRecord[]>()
-    records.forEach(record => {
-      const date = record.date
-      if (!dateGroups.has(date)) {
-        dateGroups.set(date, [])
-      }
-      dateGroups.get(date)!.push(record)
-    })
+    // 日付だけを重複なしで抽出し、降順ソート（最新が先頭）
+    const uniqueDates = Array.from(new Set(records.map(r => r.date))).sort().reverse()
 
-    // 連続日数を計算
-    const today = new Date()
-    let continueDays = 0
-    let currentDate = new Date(today)
+    if (uniqueDates.length === 0) return 0
+    if (uniqueDates.length === 1) return 1
 
-    while (true) {
-      const dateStr = currentDate.toISOString().split('T')[0]
-      if (dateGroups.has(dateStr)) {
+    // 最新の日付から連続している日数をカウント
+    let continueDays = 1
+    let currentDate = new Date(uniqueDates[0])
+
+    for (let i = 1; i < uniqueDates.length; i++) {
+      const nextDate = new Date(uniqueDates[i])
+      const expectedPrevDate = new Date(currentDate)
+      expectedPrevDate.setDate(expectedPrevDate.getDate() - 1)
+      
+      // 前日かどうかチェック
+      if (
+        expectedPrevDate.getFullYear() === nextDate.getFullYear() &&
+        expectedPrevDate.getMonth() === nextDate.getMonth() &&
+        expectedPrevDate.getDate() === nextDate.getDate()
+      ) {
         continueDays++
-        currentDate.setDate(currentDate.getDate() - 1)
+        currentDate = nextDate
       } else {
+        // 連続していない場合は終了
         break
       }
     }
@@ -287,25 +295,34 @@ export default function Dashboard() {
     })
   }
 
-  const getTodaysFeedbacks = () => {
-    const today = new Date().toISOString().split('T')[0]
+  const getRecentFeedbacks = () => {
+    // 最近7日間のフィードバックを取得
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
     
-    // 今日の記録に対するフィードバックを取得
-    const todayRecordIds = stats?.todayRecords.map(record => record.id) || []
-    
-    // 今日の記録に対するフィードバックを抽出して新しい順に並び替え
-    const todaysFeedbacks = feedbacks
-      .filter(feedback => todayRecordIds.includes(feedback.record_id))
+    // メッセージ付きのフィードバックのみを抽出し、新しい順に並び替え
+    const recentFeedbacks = feedbacks
+      .filter(feedback => 
+        feedback.message && 
+        typeof feedback.message === 'string' && 
+        feedback.message.trim() !== '' &&
+        new Date(feedback.created_at) >= sevenDaysAgo
+      )
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 5) // 最新5件まで表示
+
+    
 
     // フィードバックと対応する学習記録を組み合わせて返す
-    return todaysFeedbacks.map(feedback => {
-      const record = stats?.todayRecords.find(r => r.id === feedback.record_id)
+    // 注意: 学習記録は今日分しか読み込んでいないため、過去の記録はnullになる可能性がある
+    const result = recentFeedbacks.map(feedback => {
       return {
         feedback,
-        record
+        record: null // 簡単のため、記録詳細は表示しない
       }
     })
+    
+         return result
   }
 
   if (loading) {
@@ -511,12 +528,12 @@ export default function Dashboard() {
       </div>
 
       {/* 応援メッセージ */}
-      {getTodaysFeedbacks().length > 0 && (
+      {getRecentFeedbacks().length > 0 && (
         <div className="bg-white rounded-2xl p-6 shadow-lg border">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <span className="text-2xl">💌</span>
-              今日の応援メッセージ
+              最近の応援メッセージ
             </h2>
             <button
               onClick={loadDashboardData}
@@ -527,8 +544,7 @@ export default function Dashboard() {
             </button>
           </div>
           <div className="space-y-4">
-            {getTodaysFeedbacks()
-              .sort((a, b) => new Date(b.feedback.created_at).getTime() - new Date(a.feedback.created_at).getTime())
+            {getRecentFeedbacks()
               .map((feedbackWithRecord) => (
               <div key={feedbackWithRecord.feedback.id} className="bg-slate-50 p-4 rounded-xl">
                 <div className="flex items-center gap-2 mb-3">
@@ -550,29 +566,14 @@ export default function Dashboard() {
                     {new Date(feedbackWithRecord.feedback.created_at).toLocaleDateString('ja-JP')}
                   </span>
                 </div>
-                
-                {/* 対象となる学習内容を表示 */}
-                {feedbackWithRecord.record && (
-                  <div className="bg-white p-3 rounded-lg mb-3 border border-slate-200">
-                    <div className="text-sm font-medium text-slate-700 mb-1">
-                      📚 {getSubjectLabel(feedbackWithRecord.record.subject)}（{getContentTypeLabel(feedbackWithRecord.record.content_type)}）
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      {formatStudyDateDisplay(feedbackWithRecord.record.study_date)}実施分 • {feedbackWithRecord.record.questions_correct}/{feedbackWithRecord.record.questions_total}問正解
-                      {feedbackWithRecord.record.attempt_number > 1 && (
-                        <span className="ml-2 px-1 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
-                          {feedbackWithRecord.record.attempt_number}回目
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
 
-                {feedbackWithRecord.feedback.message && (
-                  <p className="text-slate-700">{feedbackWithRecord.feedback.message}</p>
+                {feedbackWithRecord.feedback.message && 
+                 typeof feedbackWithRecord.feedback.message === 'string' && 
+                 feedbackWithRecord.feedback.message.trim() !== '' && (
+                  <p className="text-slate-700 mt-2">{feedbackWithRecord.feedback.message}</p>
                 )}
               </div>
-            ))}
+              ))}
           </div>
         </div>
       )}

@@ -463,8 +463,10 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
                               {new Date(feedback.created_at).toLocaleDateString('ja-JP')}
                             </span>
                           </div>
-                          {feedback.message && (
-                            <p className="text-slate-700 text-sm">{feedback.message}</p>
+                          {feedback.message && 
+                           typeof feedback.message === 'string' && 
+                           feedback.message.trim() !== '' && (
+                            <p className="text-slate-700 text-sm mt-1">{feedback.message}</p>
                           )}
                         </div>
                       ))}
