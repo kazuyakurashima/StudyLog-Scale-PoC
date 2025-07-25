@@ -163,27 +163,31 @@ export default function Dashboard() {
   const calculateContinueDays = (records: StudyRecord[]): number => {
     if (!records.length) return 0
 
-    // 日付別にグループ化
-    const dateGroups = new Map<string, StudyRecord[]>()
-    records.forEach(record => {
-      const date = record.date
-      if (!dateGroups.has(date)) {
-        dateGroups.set(date, [])
-      }
-      dateGroups.get(date)!.push(record)
-    })
+    // 日付だけを重複なしで抽出し、降順ソート（最新が先頭）
+    const uniqueDates = Array.from(new Set(records.map(r => r.date))).sort().reverse()
 
-    // 連続日数を計算
-    const today = new Date()
-    let continueDays = 0
-    let currentDate = new Date(today)
+    if (uniqueDates.length === 0) return 0
+    if (uniqueDates.length === 1) return 1
 
-    while (true) {
-      const dateStr = currentDate.toISOString().split('T')[0]
-      if (dateGroups.has(dateStr)) {
+    // 最新の日付から連続している日数をカウント
+    let continueDays = 1
+    let currentDate = new Date(uniqueDates[0])
+
+    for (let i = 1; i < uniqueDates.length; i++) {
+      const nextDate = new Date(uniqueDates[i])
+      const expectedPrevDate = new Date(currentDate)
+      expectedPrevDate.setDate(expectedPrevDate.getDate() - 1)
+      
+      // 前日かどうかチェック
+      if (
+        expectedPrevDate.getFullYear() === nextDate.getFullYear() &&
+        expectedPrevDate.getMonth() === nextDate.getMonth() &&
+        expectedPrevDate.getDate() === nextDate.getDate()
+      ) {
         continueDays++
-        currentDate.setDate(currentDate.getDate() - 1)
+        currentDate = nextDate
       } else {
+        // 連続していない場合は終了
         break
       }
     }
