@@ -4,6 +4,7 @@ import type { StudyRecord, Feedback } from '../lib/supabase'
 
 interface DashboardStats {
   continueDays: number
+  cumulativeDays: number
   todayRecords: TodayRecord[]
   subjectStats: {
     subject: string
@@ -84,6 +85,9 @@ export default function Dashboard() {
       // 継続日数を計算
       const continueDays = calculateContinueDays(allRecords || [])
 
+      // 累積日数を計算
+      const cumulativeDays = calculateCumulativeDays(allRecords || [])
+
       // 科目別統計を計算
       const subjectStats = calculateSubjectStats(allRecords || [])
 
@@ -92,6 +96,7 @@ export default function Dashboard() {
 
       setStats({
         continueDays,
+        cumulativeDays,
         todayRecords,
         subjectStats,
         recentEmotions,
@@ -199,6 +204,15 @@ export default function Dashboard() {
     return continueDays
   }
 
+  const calculateCumulativeDays = (records: StudyRecord[]): number => {
+    if (!records.length) return 0
+
+    // 日付だけを重複なしで抽出（全期間の学習日数をカウント）
+    const uniqueDates = Array.from(new Set(records.map(r => r.date))).sort()
+
+    return uniqueDates.length
+  }
+
   const calculateSubjectStats = (records: StudyRecord[]) => {
     const subjects = [
       { key: 'aptitude', label: '適性', icon: '🧠', color: 'from-purple-400 to-purple-600' },
@@ -300,18 +314,11 @@ export default function Dashboard() {
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
     
-    // メッセージ付きのフィードバックのみを抽出し、新しい順に並び替え
+    // 全てのフィードバック（コメント付き、スタンプのみ両方含む）を抽出し、新しい順に並び替え
     const recentFeedbacks = feedbacks
-      .filter(feedback => 
-        feedback.message && 
-        typeof feedback.message === 'string' && 
-        feedback.message.trim() !== '' &&
-        new Date(feedback.created_at) >= sevenDaysAgo
-      )
+      .filter(feedback => new Date(feedback.created_at) >= sevenDaysAgo)
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, 5) // 最新5件まで表示
-
-    
+      .slice(0, 10) // 最新10件まで表示
 
     // フィードバックと対応する学習記録を組み合わせて返す
     // 注意: 学習記録は今日分しか読み込んでいないため、過去の記録はnullになる可能性がある
@@ -322,7 +329,7 @@ export default function Dashboard() {
       }
     })
     
-         return result
+    return result
   }
 
   if (loading) {
@@ -372,8 +379,20 @@ export default function Dashboard() {
             <p className="text-xl opacity-90">がんばり日数</p>
           </div>
         </div>
-        <div className="text-6xl font-black mb-2">
-          {stats.continueDays}<span className="text-3xl">/17</span>日
+        <div className="flex items-center justify-center gap-8 mb-4">
+          <div className="text-center">
+            <div className="text-5xl font-black mb-1">
+              {stats.continueDays}<span className="text-2xl">/17</span>
+            </div>
+            <div className="text-lg opacity-80">連続日数</div>
+          </div>
+          <div className="text-white/50 text-4xl">|</div>
+          <div className="text-center">
+            <div className="text-5xl font-black mb-1">
+              {stats.cumulativeDays}<span className="text-2xl">/17</span>
+            </div>
+            <div className="text-lg opacity-80">累積日数</div>
+          </div>
         </div>
         <div className="text-xl opacity-90">
           {stats.continueDays >= 17 ? '🎉 完走達成！' : 
@@ -533,7 +552,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <span className="text-2xl">💌</span>
-              最近の応援メッセージ
+              最近の応援メッセージ・スタンプ
             </h2>
             <button
               onClick={loadDashboardData}
@@ -556,21 +575,32 @@ export default function Dashboard() {
                     {feedbackWithRecord.feedback.sender_type === 'parent' ? '👨‍👩‍👧‍👦 保護者' : '👨‍🏫 指導者'}
                   </span>
                   {feedbackWithRecord.feedback.reaction_type && (
-                    <span>
-                      {feedbackWithRecord.feedback.reaction_type === 'clap' && '👏 すごい！'}
-                      {feedbackWithRecord.feedback.reaction_type === 'thumbs' && '👍 いいね！'}
-                      {feedbackWithRecord.feedback.reaction_type === 'muscle' && '💪 頑張って！'}
+                    <span className="text-2xl">
+                      {feedbackWithRecord.feedback.reaction_type === 'clap' && '👏'}
+                      {feedbackWithRecord.feedback.reaction_type === 'thumbs' && '👍'}
+                      {feedbackWithRecord.feedback.reaction_type === 'muscle' && '💪'}
                     </span>
                   )}
                   <span className="text-xs text-slate-500 ml-auto">
-                    {new Date(feedbackWithRecord.feedback.created_at).toLocaleDateString('ja-JP')}
+                    {new Date(feedbackWithRecord.feedback.created_at).toLocaleDateString('ja-JP', {
+                      month: 'numeric',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
                   </span>
                 </div>
 
                 {feedbackWithRecord.feedback.message && 
                  typeof feedbackWithRecord.feedback.message === 'string' && 
-                 feedbackWithRecord.feedback.message.trim() !== '' && (
-                  <p className="text-slate-700 mt-2">{feedbackWithRecord.feedback.message}</p>
+                 feedbackWithRecord.feedback.message.trim() !== '' ? (
+                  <p className="text-slate-700">{feedbackWithRecord.feedback.message}</p>
+                ) : feedbackWithRecord.feedback.reaction_type && (
+                  <p className="text-slate-600 italic text-sm">
+                    {feedbackWithRecord.feedback.reaction_type === 'clap' && 'すごい！'}
+                    {feedbackWithRecord.feedback.reaction_type === 'thumbs' && 'いいね！'}
+                    {feedbackWithRecord.feedback.reaction_type === 'muscle' && '頑張って！'}
+                  </p>
                 )}
               </div>
               ))}
