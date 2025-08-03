@@ -17,6 +17,23 @@ interface DashboardStats {
   }[]
   recentEmotions: { date: string; emotion: string }[]
   totalSessions: number
+  growthMetrics: {
+    todayImprovement: {
+      percentage: number
+      isImprovement: boolean
+    }
+    weeklyAverage: {
+      current: number
+      previous: number
+      improvement: number
+    }
+    consecutiveStreak: number
+    mostImprovedSubject: {
+      subject: string
+      label: string
+      improvement: number
+    } | null
+  }
 }
 
 interface TodayRecord {
@@ -42,6 +59,7 @@ interface TodayRecord {
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
+  const [allRecords, setAllRecords] = useState<StudyRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -60,12 +78,14 @@ export default function Dashboard() {
       setError(null)
 
       // 1. 全ての学習記録を取得
-      const { data: allRecords, error: recordsError } = await supabase
+      const { data: allRecordsData, error: recordsError } = await supabase
         .from('study_records')
         .select('*')
         .order('date', { ascending: false })
 
       if (recordsError) throw recordsError
+      
+      setAllRecords(allRecordsData || [])
 
       // 2. フィードバックを取得（関連する学習記録も含む）
       const { data: allFeedbacks, error: feedbacksError } = await supabase
@@ -91,22 +111,25 @@ export default function Dashboard() {
 
       // 3. 統計データを計算
       const today = new Date().toISOString().split('T')[0]
-      const todayRecordsRaw = allRecords?.filter(record => record.date === today) || []
+      const todayRecordsRaw = allRecordsData?.filter(record => record.date === today) || []
 
       // 今日の記録を拡張形式で処理
-      const todayRecords = await processTodayRecords(todayRecordsRaw, allRecords || [])
+      const todayRecords = await processTodayRecords(todayRecordsRaw, allRecordsData || [])
 
       // 継続日数を計算
-      const continueDays = calculateContinueDays(allRecords || [])
+      const continueDays = calculateContinueDays(allRecordsData || [])
 
       // 累積日数を計算
-      const cumulativeDays = calculateCumulativeDays(allRecords || [])
+      const cumulativeDays = calculateCumulativeDays(allRecordsData || [])
 
       // 科目別統計を計算
-      const subjectStats = calculateSubjectStats(allRecords || [])
+      const subjectStats = calculateSubjectStats(allRecordsData || [])
 
       // 最近の感情推移（直近5日間）
-      const recentEmotions = calculateRecentEmotions(allRecords || [])
+      const recentEmotions = calculateRecentEmotions(allRecordsData || [])
+
+      // 成長指標を計算
+      const growthMetrics = calculateGrowthMetrics(allRecordsData || [])
 
       setStats({
         continueDays,
@@ -114,7 +137,8 @@ export default function Dashboard() {
         todayRecords,
         subjectStats,
         recentEmotions,
-        totalSessions: allRecords?.length || 0
+        totalSessions: allRecordsData?.length || 0,
+        growthMetrics
       })
 
       setFeedbacks(allFeedbacks || [])
@@ -282,6 +306,146 @@ export default function Dashboard() {
     })
   }
 
+  const calculateGrowthMetrics = (records: StudyRecord[]) => {
+    const today = new Date().toISOString().split('T')[0]
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    
+    // 今日の成果（昨日との比較）
+    const todayRecords = records.filter(r => r.date === today)
+    const yesterdayRecords = records.filter(r => r.date === yesterday)
+    
+    const todayAccuracy = todayRecords.length > 0 ? 
+      todayRecords.reduce((sum, r) => sum + (r.questions_correct / r.questions_total), 0) / todayRecords.length * 100 : 0
+    const yesterdayAccuracy = yesterdayRecords.length > 0 ? 
+      yesterdayRecords.reduce((sum, r) => sum + (r.questions_correct / r.questions_total), 0) / yesterdayRecords.length * 100 : 0
+    
+    const todayImprovement = {
+      percentage: Math.abs(todayAccuracy - yesterdayAccuracy),
+      isImprovement: todayAccuracy > yesterdayAccuracy
+    }
+
+    // 週間平均（今週と先週の比較）
+    const now = new Date()
+    const weekStart = new Date(now.getTime() - (now.getDay() * 24 * 60 * 60 * 1000))
+    const lastWeekStart = new Date(weekStart.getTime() - (7 * 24 * 60 * 60 * 1000))
+    const lastWeekEnd = new Date(weekStart.getTime() - 1)
+
+    const thisWeekRecords = records.filter(r => {
+      const recordDate = new Date(r.date)
+      return recordDate >= weekStart
+    })
+    
+    const lastWeekRecords = records.filter(r => {
+      const recordDate = new Date(r.date)
+      return recordDate >= lastWeekStart && recordDate <= lastWeekEnd
+    })
+
+    const currentWeekAvg = thisWeekRecords.length > 0 ? 
+      thisWeekRecords.reduce((sum, r) => sum + (r.questions_correct / r.questions_total), 0) / thisWeekRecords.length * 100 : 0
+    const previousWeekAvg = lastWeekRecords.length > 0 ? 
+      lastWeekRecords.reduce((sum, r) => sum + (r.questions_correct / r.questions_total), 0) / lastWeekRecords.length * 100 : 0
+
+    const weeklyAverage = {
+      current: Math.round(currentWeekAvg),
+      previous: Math.round(previousWeekAvg),
+      improvement: Math.round(currentWeekAvg - previousWeekAvg)
+    }
+
+    // 連続記録更新（継続日数と同じ）
+    const consecutiveStreak = calculateContinueDays(records)
+
+    // 最も成長した科目（過去2週間の比較）
+    const twoWeeksAgo = new Date(now.getTime() - (14 * 24 * 60 * 60 * 1000))
+    const oneWeekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000))
+
+    const subjects = ['aptitude', 'japanese', 'math', 'science', 'social']
+    const subjectLabels = {
+      aptitude: '適性', japanese: '国語', math: '算数', science: '理科', social: '社会'
+    }
+
+    let mostImprovedSubject = null
+    let maxImprovement = 0
+
+    subjects.forEach(subject => {
+      const recentRecords = records.filter(r => 
+        r.subject === subject && new Date(r.date) >= oneWeekAgo
+      )
+      const olderRecords = records.filter(r => 
+        r.subject === subject && new Date(r.date) >= twoWeeksAgo && new Date(r.date) < oneWeekAgo
+      )
+
+      if (recentRecords.length > 0 && olderRecords.length > 0) {
+        const recentAvg = recentRecords.reduce((sum, r) => sum + (r.questions_correct / r.questions_total), 0) / recentRecords.length * 100
+        const olderAvg = olderRecords.reduce((sum, r) => sum + (r.questions_correct / r.questions_total), 0) / olderRecords.length * 100
+        const improvement = recentAvg - olderAvg
+
+        if (improvement > maxImprovement) {
+          maxImprovement = improvement
+          mostImprovedSubject = {
+            subject,
+            label: subjectLabels[subject as keyof typeof subjectLabels],
+            improvement: Math.round(improvement)
+          }
+        }
+      }
+    })
+
+    return {
+      todayImprovement,
+      weeklyAverage,
+      consecutiveStreak,
+      mostImprovedSubject
+    }
+  }
+
+  const calculateSubjectGrowthData = (records: StudyRecord[]) => {
+    const subjects = [
+      { key: 'aptitude', label: '適性', color: 'from-purple-400 to-purple-600' },
+      { key: 'japanese', label: '国語', color: 'from-rose-400 to-rose-600' },
+      { key: 'math', label: '算数', color: 'from-blue-400 to-blue-600' },
+      { key: 'science', label: '理科', color: 'from-green-400 to-green-600' },
+      { key: 'social', label: '社会', color: 'from-amber-400 to-amber-600' },
+    ]
+
+    // 過去7日間の日付を生成
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+      return date.toISOString().split('T')[0]
+    }).reverse()
+
+    const subjectGrowthData = subjects.map(subject => {
+      const subjectRecords = records.filter(r => r.subject === subject.key)
+      
+      const dailyData = last7Days.map(date => {
+        const dayRecords = subjectRecords.filter(r => r.date === date)
+        
+        if (dayRecords.length === 0) {
+          return { date, accuracy: null }
+        }
+
+        const totalCorrect = dayRecords.reduce((sum, r) => sum + r.questions_correct, 0)
+        const totalQuestions = dayRecords.reduce((sum, r) => sum + r.questions_total, 0)
+        const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0
+
+        return { date, accuracy }
+      })
+
+      // データが存在する科目のみ返す
+      const hasData = dailyData.some(d => d.accuracy !== null)
+      
+      return {
+        subject: subject.key,
+        label: subject.label,
+        color: subject.color,
+        data: dailyData,
+        hasData
+      }
+    }).filter(item => item.hasData)
+
+    return subjectGrowthData
+  }
+
   const getEmotionEmoji = (emotion: string) => {
     const emojis = { good: '😊', normal: '😐', hard: '😞' }
     return emojis[emotion as keyof typeof emojis] || '😐'
@@ -422,6 +586,99 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* 成長指標 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* 今日の成果 */}
+        <div className="bg-white rounded-xl p-6 shadow-lg border">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-2xl">📈</span>
+            <h3 className="font-bold text-lg">今日の成果</h3>
+          </div>
+          {stats.growthMetrics.todayImprovement.percentage > 0 ? (
+            <div className="text-center">
+              <div className={`text-2xl font-bold ${
+                stats.growthMetrics.todayImprovement.isImprovement ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {stats.growthMetrics.todayImprovement.isImprovement ? '+' : '-'}
+                {stats.growthMetrics.todayImprovement.percentage.toFixed(1)}%
+              </div>
+              <div className="text-sm text-slate-600 mt-1">
+                昨日より {stats.growthMetrics.todayImprovement.isImprovement ? 'UP!' : 'DOWN'}
+                {stats.growthMetrics.todayImprovement.isImprovement && stats.growthMetrics.todayImprovement.percentage >= 10 ? ' 🔥' : ''}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center text-slate-500 text-sm">
+              昨日のデータなし
+            </div>
+          )}
+        </div>
+
+        {/* 週間平均 */}
+        <div className="bg-white rounded-xl p-6 shadow-lg border">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-2xl">📊</span>
+            <h3 className="font-bold text-lg">週間平均</h3>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-600">
+              {stats.growthMetrics.weeklyAverage.current}%
+            </div>
+            {stats.growthMetrics.weeklyAverage.previous > 0 && (
+              <div className="text-sm text-slate-600 mt-1">
+                先週: {stats.growthMetrics.weeklyAverage.previous}%
+                {stats.growthMetrics.weeklyAverage.improvement !== 0 && (
+                  <span className={`ml-1 ${
+                    stats.growthMetrics.weeklyAverage.improvement > 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    ({stats.growthMetrics.weeklyAverage.improvement > 0 ? '+' : ''}
+                    {stats.growthMetrics.weeklyAverage.improvement}%)
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 連続記録更新 */}
+        <div className="bg-white rounded-xl p-6 shadow-lg border">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-2xl">⭐</span>
+            <h3 className="font-bold text-lg">連続記録</h3>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-purple-600">
+              {stats.growthMetrics.consecutiveStreak}日連続
+            </div>
+            <div className="text-sm text-slate-600 mt-1">
+              {stats.growthMetrics.consecutiveStreak >= 5 ? '素晴らしい！' : 'がんばろう！'}
+            </div>
+          </div>
+        </div>
+
+        {/* 最も成長した科目 */}
+        <div className="bg-white rounded-xl p-6 shadow-lg border">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-2xl">🚀</span>
+            <h3 className="font-bold text-lg">成長科目</h3>
+          </div>
+          {stats.growthMetrics.mostImprovedSubject ? (
+            <div className="text-center">
+              <div className="text-lg font-bold text-green-600">
+                {stats.growthMetrics.mostImprovedSubject.label}
+              </div>
+              <div className="text-sm text-slate-600 mt-1">
+                +{stats.growthMetrics.mostImprovedSubject.improvement}% UP!
+              </div>
+            </div>
+          ) : (
+            <div className="text-center text-slate-500 text-sm">
+              データ蓄積中
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* 今日の記録 */}
         <div className="bg-white rounded-2xl p-6 shadow-lg border">
@@ -532,32 +789,125 @@ export default function Dashboard() {
           科目別成績
         </h2>
         {stats.subjectStats.length > 0 ? (
-          <div className="space-y-4">
-            {stats.subjectStats.map((stat) => (
-              <div key={stat.subject} className="flex items-center gap-4">
-                <div className="flex items-center gap-3 w-24">
-                  <span className="text-2xl">{stat.icon}</span>
-                  <span className="font-medium">{stat.label}</span>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1 bg-slate-200 rounded-full h-6 overflow-hidden">
-                      <div
-                        className={`h-full bg-gradient-to-r ${stat.color} transition-all duration-500`}
-                        style={{ width: `${stat.accuracy}%` }}
-                      />
+          <>
+            {/* 累積正答率 */}
+            <div className="space-y-4 mb-8">
+              <h3 className="text-lg font-semibold text-slate-700 mb-4">累積正答率</h3>
+              {stats.subjectStats.map((stat) => (
+                <div key={stat.subject} className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 w-24">
+                    <span className="text-2xl">{stat.icon}</span>
+                    <span className="font-medium">{stat.label}</span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1 bg-slate-200 rounded-full h-6 overflow-hidden">
+                        <div
+                          className={`h-full bg-gradient-to-r ${stat.color} transition-all duration-500`}
+                          style={{ width: `${stat.accuracy}%` }}
+                        />
+                      </div>
+                      <div className="text-lg font-bold text-slate-700 w-12 text-right">
+                        {stat.accuracy}%
+                      </div>
                     </div>
-                    <div className="text-lg font-bold text-slate-700 w-12 text-right">
-                      {stat.accuracy}%
+                    <div className="text-sm text-slate-500 mt-1">
+                      {stat.totalCorrect}/{stat.totalQuestions}問正解
                     </div>
                   </div>
-                  <div className="text-sm text-slate-500 mt-1">
-                    {stat.totalCorrect}/{stat.totalQuestions}問正解
-                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+
+            {/* 7日間推移グラフ */}
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-semibold text-slate-700 mb-6">7日間の正答率推移</h3>
+              {(() => {
+                const growthData = calculateSubjectGrowthData(allRecords)
+                
+                if (growthData.length === 0) {
+                  return (
+                    <div className="text-center py-8 text-slate-500">
+                      <span className="text-3xl mb-2 block">📊</span>
+                      <p>7日間のデータが不足しています</p>
+                    </div>
+                  )
+                }
+
+                return (
+                  <div className="space-y-6">
+                    {growthData.map((subjectData) => (
+                      <div key={subjectData.subject} className="bg-slate-50 p-4 rounded-lg">
+                        <h4 className="font-medium text-slate-700 mb-3">{subjectData.label}の推移</h4>
+                        
+                        {/* 簡易グラフ表示 */}
+                        <div className="relative pl-8 sm:pl-10">
+                          <div className="flex items-end justify-between h-32 sm:h-24 bg-white rounded p-2 border">
+                            {subjectData.data.map((day, index) => (
+                              <div key={index} className="flex flex-col items-center flex-1">
+                                {/* バー */}
+                                <div className="w-full mx-1 flex flex-col justify-end h-20 sm:h-16">
+                                  {day.accuracy !== null ? (
+                                    <div
+                                      className={`w-full bg-gradient-to-t ${subjectData.color} rounded-t transition-all duration-300 hover:opacity-80 cursor-pointer`}
+                                      style={{ 
+                                        height: `${Math.max(day.accuracy, 5)}%`,
+                                        minHeight: day.accuracy > 0 ? '8px' : '2px'
+                                      }}
+                                      title={`${day.accuracy}%`}
+                                    />
+                                  ) : (
+                                    <div className="w-full h-1 bg-slate-200 rounded"></div>
+                                  )}
+                                </div>
+                                
+                                {/* 日付ラベル */}
+                                <div className="text-xs text-slate-500 mt-1 rotate-0 sm:rotate-0">
+                                  {new Date(day.date).toLocaleDateString('ja-JP', { 
+                                    month: 'numeric', 
+                                    day: 'numeric' 
+                                  })}
+                                </div>
+                                
+                                {/* 正答率表示 */}
+                                {day.accuracy !== null && (
+                                  <div className="text-xs font-medium text-slate-700 mt-1">
+                                    {day.accuracy}%
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          
+                          {/* Y軸ラベル */}
+                          <div className="absolute left-0 top-2 bottom-2 flex flex-col justify-between text-xs text-slate-400">
+                            <span className="bg-white px-1">100%</span>
+                            <span className="bg-white px-1">50%</span>
+                            <span className="bg-white px-1">0%</span>
+                          </div>
+                        </div>
+
+                        {/* 統計情報 */}
+                        <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center mt-3 text-sm text-slate-600 gap-2">
+                          <span className="bg-blue-50 px-2 py-1 rounded text-blue-700 font-medium">
+                            平均: {Math.round(
+                              subjectData.data
+                                .filter(d => d.accuracy !== null)
+                                .reduce((sum, d) => sum + (d.accuracy || 0), 0) /
+                              subjectData.data.filter(d => d.accuracy !== null).length
+                            ) || 0}%
+                          </span>
+                          <span className="bg-green-50 px-2 py-1 rounded text-green-700 font-medium">
+                            最高: {Math.max(...subjectData.data.map(d => d.accuracy || 0))}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
+          </>
         ) : (
           <div className="text-center py-8 text-slate-500">
             <span className="text-4xl mb-4 block">📊</span>

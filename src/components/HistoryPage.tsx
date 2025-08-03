@@ -7,11 +7,18 @@ interface HistoryRecord {
   feedbacks: Feedback[]
 }
 
+type SortType = 'date' | 'accuracy' | 'emotion'
+type SortOrder = 'asc' | 'desc'
+type SubjectFilter = 'all' | 'aptitude' | 'japanese' | 'math' | 'science' | 'social'
+
 export default function HistoryPage() {
   const [activeTab, setActiveTab] = useState<'study' | 'feedback' | 'combined'>('study')
   const [historyData, setHistoryData] = useState<HistoryRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [subjectFilter, setSubjectFilter] = useState<SubjectFilter>('all')
+  const [sortType, setSortType] = useState<SortType>('date')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
   useEffect(() => {
     loadHistoryData()
@@ -104,10 +111,60 @@ export default function HistoryPage() {
     })
   }
 
+  const getFilteredAndSortedData = () => {
+    let filteredData = historyData
+
+    // 科目別フィルタ
+    if (subjectFilter !== 'all') {
+      filteredData = historyData.filter(item => item.record.subject === subjectFilter)
+    }
+
+    // ソート
+    const sortedData = [...filteredData].sort((a, b) => {
+      let compareValue = 0
+
+      switch (sortType) {
+        case 'date':
+          compareValue = new Date(a.record.study_date).getTime() - new Date(b.record.study_date).getTime()
+          break
+        case 'accuracy':
+          const accuracyA = (a.record.questions_correct / a.record.questions_total) * 100
+          const accuracyB = (b.record.questions_correct / b.record.questions_total) * 100
+          compareValue = accuracyA - accuracyB
+          break
+        case 'emotion':
+          const emotionOrder = { hard: 0, normal: 1, good: 2 }
+          compareValue = emotionOrder[a.record.emotion as keyof typeof emotionOrder] - 
+                        emotionOrder[b.record.emotion as keyof typeof emotionOrder]
+          break
+      }
+
+      return sortOrder === 'asc' ? compareValue : -compareValue
+    })
+
+    return sortedData
+  }
+
+  const toggleSort = (type: SortType) => {
+    if (sortType === type) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortType(type)
+      setSortOrder('desc')
+    }
+  }
+
+  const getSortIcon = (type: SortType) => {
+    if (sortType !== type) return '↕️'
+    return sortOrder === 'asc' ? '↑' : '↓'
+  }
+
   const renderStudyHistory = () => {
+    const filteredData = getFilteredAndSortedData()
+    
     return (
       <div className="space-y-4">
-        {historyData.map((item) => (
+        {filteredData.map((item) => (
           <div key={item.record.id} className="bg-white p-6 rounded-xl shadow border">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -405,6 +462,148 @@ export default function HistoryPage() {
             </button>
           </div>
         </div>
+
+        {/* フィルタとソートコントロール */}
+        {activeTab === 'study' && (
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <span>🔍</span>
+              絞り込み・並び替え
+            </h3>
+            
+            {/* 科目フィルタ */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-slate-700 mb-3">
+                科目で絞り込み
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                <button
+                  onClick={() => setSubjectFilter('all')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
+                    subjectFilter === 'all' 
+                      ? 'bg-blue-500 text-white shadow-md' 
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  すべて
+                </button>
+                <button
+                  onClick={() => setSubjectFilter('aptitude')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 min-h-[44px] ${
+                    subjectFilter === 'aptitude' 
+                      ? 'bg-purple-500 text-white shadow-md' 
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <span className="hidden sm:inline">🎯</span> 適性
+                </button>
+                <button
+                  onClick={() => setSubjectFilter('japanese')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 min-h-[44px] ${
+                    subjectFilter === 'japanese' 
+                      ? 'bg-rose-500 text-white shadow-md' 
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <span className="hidden sm:inline">✍️</span> 国語
+                </button>
+                <button
+                  onClick={() => setSubjectFilter('math')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 min-h-[44px] ${
+                    subjectFilter === 'math' 
+                      ? 'bg-blue-500 text-white shadow-md' 
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <span className="hidden sm:inline">🔢</span> 算数
+                </button>
+                <button
+                  onClick={() => setSubjectFilter('science')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 min-h-[44px] ${
+                    subjectFilter === 'science' 
+                      ? 'bg-green-500 text-white shadow-md' 
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <span className="hidden sm:inline">🧪</span> 理科
+                </button>
+                <button
+                  onClick={() => setSubjectFilter('social')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 min-h-[44px] ${
+                    subjectFilter === 'social' 
+                      ? 'bg-amber-500 text-white shadow-md' 
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <span className="hidden sm:inline">🌍</span> 社会
+                </button>
+              </div>
+            </div>
+
+            {/* ソートコントロール */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-slate-700 mb-3">
+                並び替え
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  onClick={() => toggleSort('date')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 min-h-[44px] ${
+                    sortType === 'date' 
+                      ? 'bg-blue-500 text-white shadow-md' 
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <span className="hidden sm:inline">📅</span> 実施日 <span className="ml-1">{getSortIcon('date')}</span>
+                </button>
+                <button
+                  onClick={() => toggleSort('accuracy')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 min-h-[44px] ${
+                    sortType === 'accuracy' 
+                      ? 'bg-green-500 text-white shadow-md' 
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <span className="hidden sm:inline">🎯</span> 正答率 <span className="ml-1">{getSortIcon('accuracy')}</span>
+                </button>
+                <button
+                  onClick={() => toggleSort('emotion')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 min-h-[44px] ${
+                    sortType === 'emotion' 
+                      ? 'bg-purple-500 text-white shadow-md' 
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <span className="hidden sm:inline">😊</span> 感想 <span className="ml-1">{getSortIcon('emotion')}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 現在のフィルタ状態表示 */}
+            <div className="pt-4 border-t border-slate-200">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-slate-600">
+                <span className="font-medium">
+                  表示中: <span className="text-blue-600">{subjectFilter === 'all' ? 'すべての科目' : getSubjectLabel(subjectFilter)}</span>
+                </span>
+                <span className="hidden sm:inline">•</span>
+                <span>
+                  並び順: <span className="font-medium">{
+                    sortType === 'date' ? '実施日' :
+                    sortType === 'accuracy' ? '正答率' :
+                    '感想'
+                  }</span>
+                  <span className="text-slate-500">
+                    {sortOrder === 'desc' ? ' (高い順)' : ' (低い順)'}
+                  </span>
+                </span>
+                <span className="hidden sm:inline">•</span>
+                <span className="font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                  {getFilteredAndSortedData().length}件
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* コンテンツ */}
         <div className="mb-8">
