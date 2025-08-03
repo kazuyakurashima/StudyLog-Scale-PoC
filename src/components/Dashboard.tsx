@@ -59,7 +59,6 @@ interface TodayRecord {
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
-  const [allRecords, setAllRecords] = useState<StudyRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -84,8 +83,6 @@ export default function Dashboard() {
         .order('date', { ascending: false })
 
       if (recordsError) throw recordsError
-      
-      setAllRecords(allRecordsData || [])
 
       // 2. フィードバックを取得（関連する学習記録も含む）
       const { data: allFeedbacks, error: feedbacksError } = await supabase
@@ -210,31 +207,27 @@ export default function Dashboard() {
   const calculateContinueDays = (records: StudyRecord[]): number => {
     if (!records.length) return 0
 
+    // 今日の日付を取得
+    const today = new Date().toISOString().split('T')[0]
+    
     // 日付だけを重複なしで抽出し、降順ソート（最新が先頭）
     const uniqueDates = Array.from(new Set(records.map(r => r.date))).sort().reverse()
 
     if (uniqueDates.length === 0) return 0
-    if (uniqueDates.length === 1) return 1
 
-    // 最新の日付から連続している日数をカウント
-    let continueDays = 1
-    let currentDate = new Date(uniqueDates[0])
+    // 今日から連続している日数をカウント
+    let continueDays = 0
+    let checkDate = new Date(today)
 
-    for (let i = 1; i < uniqueDates.length; i++) {
-      const nextDate = new Date(uniqueDates[i])
-      const expectedPrevDate = new Date(currentDate)
-      expectedPrevDate.setDate(expectedPrevDate.getDate() - 1)
+    // 今日から過去に向かって連続している日をチェック
+    while (true) {
+      const checkDateStr = checkDate.toISOString().split('T')[0]
       
-      // 前日かどうかチェック
-      if (
-        expectedPrevDate.getFullYear() === nextDate.getFullYear() &&
-        expectedPrevDate.getMonth() === nextDate.getMonth() &&
-        expectedPrevDate.getDate() === nextDate.getDate()
-      ) {
+      if (uniqueDates.includes(checkDateStr)) {
         continueDays++
-        currentDate = nextDate
+        // 前日に移動
+        checkDate.setDate(checkDate.getDate() - 1)
       } else {
-        // 連続していない場合は終了
         break
       }
     }
@@ -398,53 +391,6 @@ export default function Dashboard() {
     }
   }
 
-  const calculateSubjectGrowthData = (records: StudyRecord[]) => {
-    const subjects = [
-      { key: 'aptitude', label: '適性', color: 'from-purple-400 to-purple-600' },
-      { key: 'japanese', label: '国語', color: 'from-rose-400 to-rose-600' },
-      { key: 'math', label: '算数', color: 'from-blue-400 to-blue-600' },
-      { key: 'science', label: '理科', color: 'from-green-400 to-green-600' },
-      { key: 'social', label: '社会', color: 'from-amber-400 to-amber-600' },
-    ]
-
-    // 過去7日間の日付を生成
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date()
-      date.setDate(date.getDate() - i)
-      return date.toISOString().split('T')[0]
-    }).reverse()
-
-    const subjectGrowthData = subjects.map(subject => {
-      const subjectRecords = records.filter(r => r.subject === subject.key)
-      
-      const dailyData = last7Days.map(date => {
-        const dayRecords = subjectRecords.filter(r => r.date === date)
-        
-        if (dayRecords.length === 0) {
-          return { date, accuracy: null }
-        }
-
-        const totalCorrect = dayRecords.reduce((sum, r) => sum + r.questions_correct, 0)
-        const totalQuestions = dayRecords.reduce((sum, r) => sum + r.questions_total, 0)
-        const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0
-
-        return { date, accuracy }
-      })
-
-      // データが存在する科目のみ返す
-      const hasData = dailyData.some(d => d.accuracy !== null)
-      
-      return {
-        subject: subject.key,
-        label: subject.label,
-        color: subject.color,
-        data: dailyData,
-        hasData
-      }
-    }).filter(item => item.hasData)
-
-    return subjectGrowthData
-  }
 
   const getEmotionEmoji = (emotion: string) => {
     const emojis = { good: '😊', normal: '😐', hard: '😞' }
@@ -819,94 +765,6 @@ export default function Dashboard() {
               ))}
             </div>
 
-            {/* 7日間推移グラフ */}
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold text-slate-700 mb-6">7日間の正答率推移</h3>
-              {(() => {
-                const growthData = calculateSubjectGrowthData(allRecords)
-                
-                if (growthData.length === 0) {
-                  return (
-                    <div className="text-center py-8 text-slate-500">
-                      <span className="text-3xl mb-2 block">📊</span>
-                      <p>7日間のデータが不足しています</p>
-                    </div>
-                  )
-                }
-
-                return (
-                  <div className="space-y-6">
-                    {growthData.map((subjectData) => (
-                      <div key={subjectData.subject} className="bg-slate-50 p-4 rounded-lg">
-                        <h4 className="font-medium text-slate-700 mb-3">{subjectData.label}の推移</h4>
-                        
-                        {/* 簡易グラフ表示 */}
-                        <div className="relative pl-8 sm:pl-10">
-                          <div className="flex items-end justify-between h-32 sm:h-24 bg-white rounded p-2 border">
-                            {subjectData.data.map((day, index) => (
-                              <div key={index} className="flex flex-col items-center flex-1">
-                                {/* バー */}
-                                <div className="w-full mx-1 flex flex-col justify-end h-20 sm:h-16">
-                                  {day.accuracy !== null ? (
-                                    <div
-                                      className={`w-full bg-gradient-to-t ${subjectData.color} rounded-t transition-all duration-300 hover:opacity-80 cursor-pointer`}
-                                      style={{ 
-                                        height: `${Math.max(day.accuracy, 5)}%`,
-                                        minHeight: day.accuracy > 0 ? '8px' : '2px'
-                                      }}
-                                      title={`${day.accuracy}%`}
-                                    />
-                                  ) : (
-                                    <div className="w-full h-1 bg-slate-200 rounded"></div>
-                                  )}
-                                </div>
-                                
-                                {/* 日付ラベル */}
-                                <div className="text-xs text-slate-500 mt-1 rotate-0 sm:rotate-0">
-                                  {new Date(day.date).toLocaleDateString('ja-JP', { 
-                                    month: 'numeric', 
-                                    day: 'numeric' 
-                                  })}
-                                </div>
-                                
-                                {/* 正答率表示 */}
-                                {day.accuracy !== null && (
-                                  <div className="text-xs font-medium text-slate-700 mt-1">
-                                    {day.accuracy}%
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                          
-                          {/* Y軸ラベル */}
-                          <div className="absolute left-0 top-2 bottom-2 flex flex-col justify-between text-xs text-slate-400">
-                            <span className="bg-white px-1">100%</span>
-                            <span className="bg-white px-1">50%</span>
-                            <span className="bg-white px-1">0%</span>
-                          </div>
-                        </div>
-
-                        {/* 統計情報 */}
-                        <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center mt-3 text-sm text-slate-600 gap-2">
-                          <span className="bg-blue-50 px-2 py-1 rounded text-blue-700 font-medium">
-                            平均: {Math.round(
-                              subjectData.data
-                                .filter(d => d.accuracy !== null)
-                                .reduce((sum, d) => sum + (d.accuracy || 0), 0) /
-                              subjectData.data.filter(d => d.accuracy !== null).length
-                            ) || 0}%
-                          </span>
-                          <span className="bg-green-50 px-2 py-1 rounded text-green-700 font-medium">
-                            最高: {Math.max(...subjectData.data.map(d => d.accuracy || 0))}%
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )
-              })()}
-            </div>
           </>
         ) : (
           <div className="text-center py-8 text-slate-500">
