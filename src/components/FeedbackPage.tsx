@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import type { StudyRecord, Feedback } from '../lib/supabase'
+import PersonalizedFeedback from './PersonalizedFeedback'
+import type { StudyData, StudyHistory, SenderType } from '../lib/openai'
 
 interface FeedbackPageProps {
   userRole: 'parent' | 'teacher'
@@ -97,6 +99,128 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
     }
 
     return processedRecords
+  }
+
+  const getStudyHistoryData = async (recordId: number): Promise<StudyHistory> => {
+    try {
+      // 過去30日間のデータを取得
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      const dateLimit = thirtyDaysAgo.toISOString().split('T')[0]
+
+      const { data: records, error } = await supabase
+        .from('study_records')
+        .select('*')
+        .gte('date', dateLimit)
+        .order('date', { ascending: false })
+
+      if (error) throw error
+
+      // 連続日数を計算
+      const uniqueDates = [...new Set(records?.map(r => r.date) || [])]
+      const continuationDays = calculateContinuationDays(uniqueDates)
+
+      // 科目別正解率を計算
+      const subjectAccuracy: Record<string, { correct: number; total: number }> = {}
+      records?.forEach(record => {
+        if (!subjectAccuracy[record.subject]) {
+          subjectAccuracy[record.subject] = { correct: 0, total: 0 }
+        }
+        subjectAccuracy[record.subject].correct += record.questions_correct
+        subjectAccuracy[record.subject].total += record.questions_total
+      })
+
+      // 最近の記録（5件）
+      const recentRecords: StudyData[] = (records?.slice(0, 5) || []).map(record => ({
+        subject: record.subject,
+        questionsTotal: record.questions_total,
+        questionsCorrect: record.questions_correct,
+        emotion: record.emotion as 'good' | 'normal' | 'hard',
+        comment: record.comment || undefined,
+        date: record.date
+      }))
+
+      return {
+        recentRecords,
+        totalDays: uniqueDates.length,
+        continuationDays,
+        subjectAccuracy
+      }
+    } catch (error) {
+      console.error('学習履歴データの取得に失敗:', error)
+      return {
+        recentRecords: [],
+        totalDays: 0,
+        continuationDays: 0,
+        subjectAccuracy: {}
+      }
+    }
+  }
+
+  const calculateContinuationDays = (dates: string[]): number => {
+    if (dates.length === 0) return 0
+    
+    const sortedDates = dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+    let continuationCount = 1
+    
+    for (let i = 1; i < sortedDates.length; i++) {
+      const currentDate = new Date(sortedDates[i])
+      const previousDate = new Date(sortedDates[i - 1])
+      const diffDays = Math.floor((previousDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24))
+      
+      if (diffDays === 1) {
+        continuationCount++
+      } else {
+        break
+      }
+    }
+    
+    return continuationCount
+  }
+
+  const sendPersonalizedFeedback = async (recordId: number, message: string, emoji: string) => {
+    try {
+      setSending(true)
+
+      const { error } = await supabase
+        .from('feedbacks')
+        .insert([{
+          record_id: recordId,
+          sender_type: userRole,
+          reaction_type: null,
+          message: message
+        }])
+
+      if (error) throw error
+
+      console.log('✅ 個別最適化メッセージ送信成功')
+      
+      // 送信状態をすぐにリセット
+      setSending(false)
+      
+      // 視覚フィードバックを表示
+      setReactionSent({ recordId, type: 'personalized' })
+      
+      // 2秒後にフィードバックを非表示にし、フィードバックを配列に追加
+      setTimeout(() => {
+        setReactionSent(null)
+        const newFeedback: Feedback = {
+          id: Date.now(),
+          record_id: recordId,
+          sender_type: userRole,
+          reaction_type: undefined,
+          message: message,
+          created_at: new Date().toISOString()
+        }
+        setFeedbacks(prev => [newFeedback, ...prev])
+      }, 2000)
+
+    } catch (error) {
+      console.error('❌ 個別最適化メッセージ送信エラー:', error)
+      alert('メッセージの送信に失敗しました')
+      setSending(false)
+      setReactionSent(null)
+    }
   }
 
   const sendReaction = async (recordId: number, reactionType: 'clap' | 'thumbs' | 'muscle') => {
@@ -347,46 +471,24 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
                   </div>
                 </div>
 
-                {/* リアクションボタン */}
+                {/* 個別最適化応援メッセージ */}
                 <div className="mb-6">
-                  <h4 className="text-lg font-bold mb-3">応援する:</h4>
-                  {reactionSent?.recordId === record.id ? (
-                    <div className="bg-green-100 border border-green-300 text-green-800 px-6 py-4 rounded-xl flex items-center justify-center gap-3 animate-pulse">
-                      <span className="text-3xl">
-                        {reactionSent.type === 'clap' && '👏'}
-                        {reactionSent.type === 'thumbs' && '👍'}
-                        {reactionSent.type === 'muscle' && '💪'}
-                      </span>
-                      <span className="font-bold text-lg">応援を送信しました！</span>
-                    </div>
-                  ) : (
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => sendReaction(record.id, 'clap')}
-                        disabled={sending || reactionSent?.recordId === record.id}
-                        className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-6 py-3 rounded-xl font-medium transition-all hover:scale-105 flex items-center gap-2 disabled:opacity-50"
-                      >
-                        <span className="text-2xl">👏</span>
-                        すごい！
-                      </button>
-                      <button
-                        onClick={() => sendReaction(record.id, 'thumbs')}
-                        disabled={sending || reactionSent?.recordId === record.id}
-                        className="bg-blue-100 hover:bg-blue-200 text-blue-800 px-6 py-3 rounded-xl font-medium transition-all hover:scale-105 flex items-center gap-2 disabled:opacity-50"
-                      >
-                        <span className="text-2xl">👍</span>
-                        いいね！
-                      </button>
-                      <button
-                        onClick={() => sendReaction(record.id, 'muscle')}
-                        disabled={sending || reactionSent?.recordId === record.id}
-                        className="bg-red-100 hover:bg-red-200 text-red-800 px-6 py-3 rounded-xl font-medium transition-all hover:scale-105 flex items-center gap-2 disabled:opacity-50"
-                      >
-                        <span className="text-2xl">💪</span>
-                        頑張って！
-                      </button>
-                    </div>
-                  )}
+                  <PersonalizedFeedback
+                    recordId={record.id}
+                    studyData={{
+                      subject: record.subject,
+                      questionsTotal: record.questions_total,
+                      questionsCorrect: record.questions_correct,
+                      emotion: record.emotion as 'good' | 'normal' | 'hard',
+                      comment: record.comment || undefined,
+                      date: record.date
+                    }}
+                    senderType={userRole as SenderType}
+                    onSendFeedback={sendPersonalizedFeedback}
+                    sending={sending}
+                    reactionSent={reactionSent}
+                    getStudyHistory={getStudyHistoryData}
+                  />
                 </div>
 
                 {/* コメント入力 */}
