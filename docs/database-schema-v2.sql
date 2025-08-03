@@ -165,5 +165,40 @@ GROUP BY subject, study_date, content_type
 ORDER BY study_date DESC;
 */
 
--- 10. 権限とセキュリティ（RLS Policy更新）
+-- 10. 振り返り機能用テーブル
+CREATE TABLE IF NOT EXISTS reflections (
+    id SERIAL PRIMARY KEY,
+    date DATE NOT NULL, -- 振り返り対象の日付
+    reflection_content TEXT NOT NULL, -- 振り返り内容（生徒記入）
+    improvement_points TEXT, -- 改善点（生徒記入）
+    teacher_comment TEXT, -- 先生のコメント
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- インデックス追加
+CREATE INDEX IF NOT EXISTS idx_reflections_date ON reflections(date);
+
+-- 更新日時の自動更新トリガー
+CREATE OR REPLACE FUNCTION update_reflection_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_reflections_updated_at
+    BEFORE UPDATE ON reflections
+    FOR EACH ROW
+    EXECUTE FUNCTION update_reflection_updated_at();
+
+-- RLS有効化
+ALTER TABLE reflections ENABLE ROW LEVEL SECURITY;
+
+-- 振り返りデータにアクセス可能なポリシー
+CREATE POLICY "Everyone can access reflections" ON reflections
+    FOR ALL USING (true);
+
+-- 11. 権限とセキュリティ（RLS Policy更新）
 -- 既存のRLSポリシーは継続使用可能 

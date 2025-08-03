@@ -67,10 +67,24 @@ export default function Dashboard() {
 
       if (recordsError) throw recordsError
 
-      // 2. フィードバックを取得
+      // 2. フィードバックを取得（関連する学習記録も含む）
       const { data: allFeedbacks, error: feedbacksError } = await supabase
         .from('feedbacks')
-        .select('*')
+        .select(`
+          *,
+          study_records (
+            id,
+            date,
+            study_date,
+            subject,
+            content_type,
+            attempt_number,
+            questions_total,
+            questions_correct,
+            emotion,
+            comment
+          )
+        `)
         .order('created_at', { ascending: false })
 
       if (feedbacksError) throw feedbacksError
@@ -280,6 +294,13 @@ export default function Dashboard() {
     return labels[subject] || subject
   }
 
+  const getSubjectIcon = (subject: string) => {
+    const icons: Record<string, string> = {
+      aptitude: '🎯', japanese: '✍️', math: '🔢', science: '🧪', social: '🌍'
+    }
+    return icons[subject] || '📚'
+  }
+
   const getContentTypeLabel = (contentType: string) => {
     return contentType === 'class' ? '授業' : '宿題'
   }
@@ -321,11 +342,10 @@ export default function Dashboard() {
       .slice(0, 10) // 最新10件まで表示
 
     // フィードバックと対応する学習記録を組み合わせて返す
-    // 注意: 学習記録は今日分しか読み込んでいないため、過去の記録はnullになる可能性がある
     const result = recentFeedbacks.map(feedback => {
       return {
         feedback,
-        record: null // 簡単のため、記録詳細は表示しない
+        record: (feedback as any).study_records || null
       }
     })
     
@@ -566,6 +586,32 @@ export default function Dashboard() {
             {getRecentFeedbacks()
               .map((feedbackWithRecord) => (
               <div key={feedbackWithRecord.feedback.id} className="bg-slate-50 p-4 rounded-xl">
+                {/* 学習記録情報を表示 */}
+                {feedbackWithRecord.record && (
+                  <div className="mb-3 p-3 bg-white rounded-lg border border-slate-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">{getSubjectIcon(feedbackWithRecord.record.subject)}</span>
+                      <span className="font-semibold">{getSubjectLabel(feedbackWithRecord.record.subject)}</span>
+                      <span className="text-sm px-2 py-1 bg-slate-100 text-slate-600 rounded">
+                        {getContentTypeLabel(feedbackWithRecord.record.content_type)}
+                      </span>
+                      {feedbackWithRecord.record.attempt_number > 1 && (
+                        <span className="text-sm px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                          {feedbackWithRecord.record.attempt_number}回目
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm text-slate-600 flex items-center gap-4">
+                      <span>📅 {formatStudyDateDisplay(feedbackWithRecord.record.study_date)}実施分</span>
+                      <span className="font-medium text-blue-600">
+                        🎯 {feedbackWithRecord.record.questions_correct}/{feedbackWithRecord.record.questions_total}問正解 
+                        ({Math.round((feedbackWithRecord.record.questions_correct / feedbackWithRecord.record.questions_total) * 100)}%)
+                      </span>
+                      <span>{getEmotionLabel(feedbackWithRecord.record.emotion)}</span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2 mb-3">
                   <span className={`px-2 py-1 rounded text-sm font-medium ${
                     feedbackWithRecord.feedback.sender_type === 'parent' 

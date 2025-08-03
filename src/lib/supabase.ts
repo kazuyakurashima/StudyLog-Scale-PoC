@@ -43,6 +43,16 @@ export interface Feedback {
   created_at: string
 }
 
+export interface Reflection {
+  id: number
+  date: string
+  reflection_content: string
+  improvement_points?: string
+  teacher_comment?: string
+  created_at: string
+  updated_at: string
+}
+
 // Database tables type definition
 export interface Database {
   public: {
@@ -56,6 +66,11 @@ export interface Database {
         Row: Feedback
         Insert: Omit<Feedback, 'id' | 'created_at'>
         Update: Partial<Omit<Feedback, 'id' | 'created_at'>>
+      }
+      reflections: {
+        Row: Reflection
+        Insert: Omit<Reflection, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<Reflection, 'id' | 'created_at' | 'updated_at'>>
       }
     }
   }

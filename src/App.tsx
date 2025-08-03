@@ -2,11 +2,13 @@ import { useState } from "react"
 import StudyRecordForm from "./components/StudyRecordForm"
 import Dashboard from "./components/Dashboard"
 import FeedbackPage from "./components/FeedbackPage"
+import HistoryPage from "./components/HistoryPage"
+import ReflectionPage from "./components/ReflectionPage"
 import UserSwitcher, { type UserRole } from "./components/UserSwitcher"
 import "./App.css"
 
 function App() {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'form' | 'feedback' | 'userSwitch'>('dashboard')
+  const [currentView, setCurrentView] = useState<'dashboard' | 'form' | 'feedback' | 'history' | 'reflection' | 'userSwitch'>('dashboard')
   const [userRole, setUserRole] = useState<UserRole>('student')
 
   return (
@@ -52,6 +54,26 @@ function App() {
                 >
                   📝 学習記録
                 </button>
+                <button
+                  onClick={() => setCurrentView('history')}
+                  className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
+                    currentView === 'history' 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  📚 学習履歴
+                </button>
+                <button
+                  onClick={() => setCurrentView('reflection')}
+                  className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
+                    currentView === 'reflection' 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  🤔 振り返り
+                </button>
               </>
             )}
 
@@ -77,6 +99,28 @@ function App() {
                 >
                   💌 フィードバック
                 </button>
+                <button
+                  onClick={() => setCurrentView('history')}
+                  className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
+                    currentView === 'history' 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  📚 学習履歴
+                </button>
+                {userRole === 'teacher' && (
+                  <button
+                    onClick={() => setCurrentView('reflection')}
+                    className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
+                      currentView === 'reflection' 
+                        ? 'bg-blue-500 text-white' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    🤔 振り返り
+                  </button>
+                )}
               </>
             )}
 
@@ -102,6 +146,10 @@ function App() {
       {currentView === 'form' && <StudyRecordForm />}
       {currentView === 'feedback' && (
         <FeedbackPage userRole={userRole === 'parent' ? 'parent' : 'teacher'} />
+      )}
+      {currentView === 'history' && <HistoryPage />}
+      {currentView === 'reflection' && (
+        <ReflectionPage userRole={userRole === 'teacher' ? 'teacher' : 'student'} />
       )}
       {currentView === 'userSwitch' && (
         <div className="p-8 max-w-4xl mx-auto">
