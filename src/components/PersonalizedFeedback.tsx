@@ -99,10 +99,11 @@ export default function PersonalizedFeedback({
     const totalCount = studyData.questionsTotal;
     const continuationDays = studyHistory.continuationDays;
     
-    // 各記録の一意性を確保するため、recordIdとタイムスタンプを使用
-    const uniqueId = `${recordId}_${Date.now()}`;
+    // バリエーション用のランダムシード（学習データ固有だが一意性を保つ）
+    const uniqueSeed = `${studyData.subject}_${studyData.date}_${studyData.questionsCorrect}_${studyData.questionsTotal}_${studyData.emotion}_${Date.now()}`;
+    const randomIndex = Math.abs(uniqueSeed.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % 100;
     
-    console.log(`🎯 フォールバック生成 [${uniqueId}]:`, {
+    console.log(`🎯 フォールバック生成 [${recordId}]:`, {
       recordId,
       subject: studyData.subject,
       subjectName,
@@ -110,41 +111,87 @@ export default function PersonalizedFeedback({
       correctCount,
       totalCount,
       continuationDays,
-      senderType
+      senderType,
+      uniqueSeed,
+      randomIndex
     });
     
     if (senderType === 'parent') {
+      // 保護者向けメッセージのバリエーション
+      const encouragingMessages = [
+        `${subjectName}${accuracy}%、今日もよく頑張ったね😊`,
+        `${subjectName}${accuracy}%達成、素晴らしい努力だね😊`,
+        `${subjectName}で${accuracy}%、本当によく頑張ってる😊`,
+        `${subjectName}${accuracy}%、継続する力が立派だね😊`
+      ];
+      
+      const specificMessages = [
+        `${subjectName}${totalCount}問中${correctCount}問正解、成長してるね🎯`,
+        `${subjectName}で${correctCount}/${totalCount}問正解、力がついてる🎯`,
+        `${subjectName}${correctCount}問正解、確実に上達してるね🎯`,
+        `${subjectName}の${correctCount}問正解、頑張りが実ってる🎯`
+      ];
+      
+      const lovingMessages = [
+        `${continuationDays}日継続中、パパママも応援してるよ💝`,
+        `${continuationDays}日も続けて、本当に頑張り屋さんだね💝`,
+        `${continuationDays}日継続、その努力を誇らしく思うよ💝`,
+        `${continuationDays}日間コツコツと、素晴らしい姿勢だね💝`
+      ];
+      
       return [
         { 
-          message: `${subjectName}${accuracy}%、今日もよく頑張ったね😊`, 
+          message: encouragingMessages[randomIndex % encouragingMessages.length], 
           emoji: "😊", 
           type: "encouraging" 
         },
         { 
-          message: `${subjectName}${totalCount}問中${correctCount}問正解、成長してるね🎯`, 
+          message: specificMessages[(randomIndex + 1) % specificMessages.length], 
           emoji: "🎯", 
           type: "specific_praise" 
         },
         { 
-          message: `${continuationDays}日継続中、パパママも応援してるよ💝`, 
+          message: lovingMessages[(randomIndex + 2) % lovingMessages.length], 
           emoji: "💝", 
           type: "loving" 
         }
       ];
     } else {
+      // 指導者向けメッセージのバリエーション
+      const encouragingMessages = [
+        `${subjectName}${accuracy}%、着実に力がついています📈`,
+        `${subjectName}で${accuracy}%達成、順調な成長です📈`,
+        `${subjectName}${accuracy}%、確実にレベルアップしています📈`,
+        `${subjectName}の${accuracy}%、基礎力が定着してきました📈`
+      ];
+      
+      const instructionalMessages = [
+        `${subjectName}${totalCount}問中${correctCount}問正解、素晴らしいです🎯`,
+        `${subjectName}で${correctCount}/${totalCount}問正解、理解が深まっています🎯`,
+        `${subjectName}${correctCount}問正解、学習効果が表れています🎯`,
+        `${subjectName}の${correctCount}問正解、着実な進歩です🎯`
+      ];
+      
+      const motivationalMessages = [
+        `${continuationDays}日継続、この調子で次のステップへ💪`,
+        `${continuationDays}日間の継続、継続力が素晴らしいです💪`,
+        `${continuationDays}日続けて、学習習慣が定着していますね💪`,
+        `${continuationDays}日継続中、この momentum を大切に💪`
+      ];
+      
       return [
         { 
-          message: `${subjectName}${accuracy}%、着実に力がついています📈`, 
+          message: encouragingMessages[randomIndex % encouragingMessages.length], 
           emoji: "📈", 
           type: "encouraging" 
         },
         { 
-          message: `${subjectName}${totalCount}問中${correctCount}問正解、素晴らしいです🎯`, 
+          message: instructionalMessages[(randomIndex + 1) % instructionalMessages.length], 
           emoji: "🎯", 
           type: "instructional" 
         },
         { 
-          message: `${continuationDays}日継続、この調子で次のステップへ💪`, 
+          message: motivationalMessages[(randomIndex + 2) % motivationalMessages.length], 
           emoji: "💪", 
           type: "motivational" 
         }
