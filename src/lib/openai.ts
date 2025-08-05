@@ -29,8 +29,26 @@ export async function generatePersonalizedMessages(
   studyHistory: StudyHistory,
   senderType: SenderType
 ): Promise<PersonalizedMessage[]> {
+  const requestId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
   try {
-    console.log('🚀 個別最適化メッセージ生成開始:', { subject: studyData.subject, senderType });
+    console.log(`🚀 [${requestId}] 個別最適化メッセージ生成開始:`, { 
+      subject: studyData.subject, 
+      senderType, 
+      studyData: {
+        subject: studyData.subject,
+        questionsTotal: studyData.questionsTotal,
+        questionsCorrect: studyData.questionsCorrect,
+        accuracy: Math.round((studyData.questionsCorrect / studyData.questionsTotal) * 100),
+        emotion: studyData.emotion,
+        date: studyData.date
+      },
+      studyHistory: {
+        continuationDays: studyHistory.continuationDays,
+        totalDays: studyHistory.totalDays,
+        recentRecordsCount: studyHistory.recentRecords.length
+      }
+    });
     
     // Use API route instead of direct OpenAI SDK call with timeout
     const controller = new AbortController();
@@ -52,16 +70,16 @@ export async function generatePersonalizedMessages(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      console.error('❌ API応答エラー:', response.status, response.statusText);
+      console.error(`❌ [${requestId}] API応答エラー:`, response.status, response.statusText);
       throw new Error(`API request failed: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    console.log('✅ 個別最適化メッセージ取得成功:', data.messages?.length, 'messages');
+    console.log(`✅ [${requestId}] 個別最適化メッセージ取得成功:`, data.messages?.length, 'messages', data.messages);
     return data.messages as PersonalizedMessage[];
   } catch (error) {
-    console.error('❌ 個別最適化メッセージ生成失敗:', error);
-    console.log('🔄 個別データ反映フォールバックメッセージを使用');
+    console.error(`❌ [${requestId}] 個別最適化メッセージ生成失敗:`, error);
+    console.log(`🔄 [${requestId}] 個別データ反映フォールバックメッセージを使用`);
     // より良いフォールバック: 学習データを反映したメッセージを生成
     return getPersonalizedFallbackMessages(studyData, studyHistory, senderType);
   }

@@ -124,12 +124,32 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const requestId = `api_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+
   try {
     const { studyData, studyHistory, senderType } = req.body;
 
     if (!studyData || !studyHistory || !senderType) {
+      console.error(`❌ [${requestId}] 必須パラメータ不足:`, { studyData: !!studyData, studyHistory: !!studyHistory, senderType });
       return res.status(400).json({ error: 'Missing required parameters' });
     }
+
+    console.log(`🚀 [${requestId}] API開始:`, {
+      senderType,
+      studyData: {
+        subject: studyData.subject,
+        questionsTotal: studyData.questionsTotal,
+        questionsCorrect: studyData.questionsCorrect,
+        accuracy: Math.round((studyData.questionsCorrect / studyData.questionsTotal) * 100),
+        emotion: studyData.emotion,
+        date: studyData.date
+      },
+      studyHistory: {
+        continuationDays: studyHistory.continuationDays,
+        totalDays: studyHistory.totalDays,
+        recentRecordsCount: studyHistory.recentRecords?.length || 0
+      }
+    });
 
     const systemPrompt = senderType === 'parent' ? PARENT_SYSTEM_PROMPT : TEACHER_SYSTEM_PROMPT;
     
@@ -158,7 +178,7 @@ ${JSON.stringify(studyHistory, null, 2)}
 【重要】この${subjectName}の学習記録に関してのみメッセージを作成してください。他の科目の情報は一切使用しないでください。`;
 
     // GPT-4o-mini: 高性能かつ最もコスト効率の良いモデルを使用
-    console.log('🚀 OpenAI APIに送信するプロンプト:', { systemPrompt: systemPrompt.substring(0, 200) + '...', userPrompt });
+    console.log(`🚀 [${requestId}] OpenAI APIに送信するプロンプト:`, { systemPrompt: systemPrompt.substring(0, 200) + '...', userPrompt });
     
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -176,24 +196,25 @@ ${JSON.stringify(studyHistory, null, 2)}
       temperature: 0.8  // 多様性を高めるため温度を上げる
     });
 
-    console.log('📦 OpenAI APIからの応答:', response.choices[0]?.message?.content);
+    console.log(`📦 [${requestId}] OpenAI APIからの応答:`, response.choices[0]?.message?.content);
 
     const content = response.choices[0]?.message?.content;
     if (content) {
       try {
         const parsed = JSON.parse(content);
-        console.log('✅ JSON解析成功:', parsed);
+        console.log(`✅ [${requestId}] JSON解析成功:`, parsed);
         return res.status(200).json({ messages: parsed.messages });
       } catch (parseError) {
-        console.error('❌ JSON解析失敗:', parseError, 'Raw content:', content);
+        console.error(`❌ [${requestId}] JSON解析失敗:`, parseError, 'Raw content:', content);
+        console.log(`🔄 [${requestId}] JSON解析失敗のため個別データ反映フォールバックメッセージを使用`);
         return res.status(200).json({ messages: getPersonalizedFallbackMessages(senderType, subjectName, studyData, studyHistory) });
       }
     }
     
-    console.log('⚠️ OpenAI応答が空のため、個別データ反映フォールバックメッセージを使用');
+    console.log(`⚠️ [${requestId}] OpenAI応答が空のため、個別データ反映フォールバックメッセージを使用`);
     return res.status(200).json({ messages: getPersonalizedFallbackMessages(senderType, subjectName, studyData, studyHistory) });
   } catch (error) {
-    console.error('❌ OpenAI API エラー:', error);
+    console.error(`❌ [${requestId}] OpenAI API エラー:`, error);
     const subjectMapping = {
       aptitude: '適性',
       japanese: '国語', 
@@ -203,7 +224,7 @@ ${JSON.stringify(studyHistory, null, 2)}
     };
     const fallbackSubject = req.body.studyData?.subject ? 
       (subjectMapping[req.body.studyData.subject] || req.body.studyData.subject) : '';
-    console.log('🔄 エラー発生のため個別データ反映フォールバックメッセージを使用');
+    console.log(`🔄 [${requestId}] エラー発生のため個別データ反映フォールバックメッセージを使用`);
     return res.status(200).json({ 
       messages: getPersonalizedFallbackMessages(
         req.body.senderType || 'parent', 

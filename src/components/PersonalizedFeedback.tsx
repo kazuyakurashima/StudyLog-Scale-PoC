@@ -36,8 +36,16 @@ export default function PersonalizedFeedback({
       setLoading(true)
       setError(null)
       
+      console.log('🚀 メッセージ生成開始 - recordId:', recordId, 'studyData:', {
+        subject: studyData.subject,
+        questionsTotal: studyData.questionsTotal,
+        questionsCorrect: studyData.questionsCorrect,
+        accuracy: Math.round((studyData.questionsCorrect / studyData.questionsTotal) * 100)
+      });
+      
       // 学習履歴データを取得
       studyHistory = await getStudyHistory(recordId)
+      console.log('📊 取得した学習履歴:', studyHistory);
       
       const personalizedMessages = await generatePersonalizedMessages(
         studyData,
@@ -45,19 +53,27 @@ export default function PersonalizedFeedback({
         senderType
       )
       
+      console.log('✅ 生成されたメッセージ:', personalizedMessages);
       setMessages(personalizedMessages)
     } catch (err) {
       console.error('個別最適化メッセージの生成に失敗:', err)
       setError('メッセージの生成に失敗しました')
-      // フォールバック: 学習データを反映したメッセージを使用
-      // studyHistoryがnullの場合はデフォルト値を使用
-      const fallbackHistory = studyHistory || { 
-        recentRecords: [], 
-        totalDays: 1, 
-        continuationDays: 1, 
-        subjectAccuracy: {} 
+      
+      // 現在の学習記録から直接作成するフォールバック履歴
+      const directFallbackHistory = {
+        recentRecords: [studyData],
+        totalDays: 1,
+        continuationDays: 1,
+        subjectAccuracy: {
+          [studyData.subject]: {
+            correct: studyData.questionsCorrect,
+            total: studyData.questionsTotal
+          }
+        }
       };
-      setMessages(getPersonalizedFallbackMessages(studyData, fallbackHistory, senderType))
+      
+      console.log('🔄 直接フォールバック使用 - studyData:', studyData, 'fallbackHistory:', directFallbackHistory);
+      setMessages(getPersonalizedFallbackMessages(studyData, directFallbackHistory, senderType))
     } finally {
       setLoading(false)
     }
@@ -82,6 +98,20 @@ export default function PersonalizedFeedback({
     const correctCount = studyData.questionsCorrect;
     const totalCount = studyData.questionsTotal;
     const continuationDays = studyHistory.continuationDays;
+    
+    // 各記録の一意性を確保するため、recordIdとタイムスタンプを使用
+    const uniqueId = `${recordId}_${Date.now()}`;
+    
+    console.log(`🎯 フォールバック生成 [${uniqueId}]:`, {
+      recordId,
+      subject: studyData.subject,
+      subjectName,
+      accuracy,
+      correctCount,
+      totalCount,
+      continuationDays,
+      senderType
+    });
     
     if (senderType === 'parent') {
       return [
