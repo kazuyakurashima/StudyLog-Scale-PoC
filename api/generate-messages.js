@@ -7,6 +7,16 @@ const openai = new OpenAI({
 const PARENT_SYSTEM_PROMPT = `あなたは愛情深い日本の保護者として、我が子の学習を温かく応援します。
 以下の学習結果と履歴を詳しく分析して、具体的で心のこもった応援メッセージを3つ提案してください。
 
+【絶対に守るべきルール】
+1. 科目名は必ず学習データと完全に一致させる：
+   - aptitude → 適性
+   - japanese → 国語
+   - math → 算数
+   - science → 理科
+   - social → 社会
+2. 他の科目の情報を絶対に混在させない
+3. 学習データにない情報は一切使わない
+
 【メッセージの特徴】
 - 学習データの具体的な内容（科目、正解率、連続日数、感情など）を必ず盛り込む
 - 日本の家庭らしい自然で温かい表現（「〜してくれて嬉しいよ」「〜で成長してるね」など）
@@ -18,19 +28,29 @@ const PARENT_SYSTEM_PROMPT = `あなたは愛情深い日本の保護者とし�
 2. 具体的成果を褒める系（科目名、正解率、難易度などに言及）
 3. 感情・気持ちに寄り添う系（今日の気持ちや学習への取り組み姿勢に言及）
 
-【重要】学習履歴の具体的なデータ（科目名、正解率、連続日数、感情状態）を必ずメッセージに含めてください。
+【重要】今回の学習データの科目情報のみを使用し、他の科目の情報は絶対に含めないでください。
 
 各メッセージは以下のJSON形式で返してください：
 {
   "messages": [
-    {"message": "算数90%正解、3日連続で頑張ってるね😊", "emoji": "😊", "type": "encouraging"},
-    {"message": "国語の読解問題、前より解けるようになったね🎯", "emoji": "🎯", "type": "specific_praise"},
-    {"message": "今日は難しく感じても最後まで取り組んだね💪", "emoji": "💪", "type": "loving"}
+    {"message": "理科実験問題8割正解、よく頑張ったね😊", "emoji": "😊", "type": "encouraging"},
+    {"message": "社会の地理、前回より理解が深まってる🎯", "emoji": "🎯", "type": "specific_praise"},
+    {"message": "適性検査難しくても諦めず取り組んだね💪", "emoji": "💪", "type": "loving"}
   ]
 }`;
 
 const TEACHER_SYSTEM_PROMPT = `あなたは経験豊富な中学受験指導のプロ教師です。
 以下の学習結果と履歴を詳しく分析して、教育的効果の高い応援メッセージを3つ提案してください。
+
+【絶対に守るべきルール】
+1. 科目名は必ず学習データと完全に一致させる：
+   - aptitude → 適性
+   - japanese → 国語
+   - math → 算数
+   - science → 理科
+   - social → 社会
+2. 他の科目の情報を絶対に混在させない
+3. 学習データにない情報は一切使わない
 
 【メッセージの特徴】
 - 学習データの具体的な内容（科目、正解率、学習傾向、感情変化など）を必ず盛り込む
@@ -43,14 +63,14 @@ const TEACHER_SYSTEM_PROMPT = `あなたは経験豊富な中学受験指導の�
 2. 学習方法・取り組み姿勢を評価する系（学習への向き合い方、努力の仕方に言及）
 3. 次への目標・動機付け系（今後の学習方針、励ましに言及）
 
-【重要】学習履歴の具体的なデータ（科目名、正解率、連続日数、正答率の変化など）を必ずメッセージに含めてください。
+【重要】今回の学習データの科目情報のみを使用し、他の科目の情報は絶対に含めないでください。
 
 各メッセージは以下のJSON形式で返してください：
 {
   "messages": [
-    {"message": "算数計算問題80%→90%、着実に力ついてます📈", "emoji": "📈", "type": "encouraging"},
-    {"message": "理科3日連続挑戦、継続力が素晴らしいです🎯", "emoji": "🎯", "type": "instructional"},
-    {"message": "難しい問題も諦めず、この調子で行きましょう💪", "emoji": "💪", "type": "motivational"}
+    {"message": "理科観察問題75%正解、確実に力ついてます📈", "emoji": "📈", "type": "encouraging"},
+    {"message": "適性検査3日連続挑戦、継続力が素晴らしい🎯", "emoji": "🎯", "type": "instructional"},
+    {"message": "国語読解の精度向上、この調子で行きましょう💪", "emoji": "💪", "type": "motivational"}
   ]
 }`;
 
@@ -83,8 +103,30 @@ export default async function handler(req, res) {
     }
 
     const systemPrompt = senderType === 'parent' ? PARENT_SYSTEM_PROMPT : TEACHER_SYSTEM_PROMPT;
-    const userPrompt = `学習データ: ${JSON.stringify(studyData, null, 2)}
-学習履歴: ${JSON.stringify(studyHistory, null, 2)}`;
+    
+    // 科目名マッピング
+    const subjectMapping = {
+      aptitude: '適性',
+      japanese: '国語', 
+      math: '算数',
+      science: '理科',
+      social: '社会'
+    };
+    
+    const subjectName = subjectMapping[studyData.subject] || studyData.subject;
+    
+    const userPrompt = `【今回の学習記録】
+科目: ${subjectName} (${studyData.subject})
+正解数: ${studyData.questionsCorrect}/${studyData.questionsTotal}問
+正解率: ${Math.round((studyData.questionsCorrect / studyData.questionsTotal) * 100)}%
+感情: ${studyData.emotion}
+コメント: ${studyData.comment || 'なし'}
+学習日: ${studyData.date}
+
+【学習履歴】
+${JSON.stringify(studyHistory, null, 2)}
+
+【重要】この${subjectName}の学習記録に関してのみメッセージを作成してください。他の科目の情報は一切使用しないでください。`;
 
     // GPT-4o-mini: 高性能かつ最もコスト効率の良いモデルを使用
     const response = await openai.chat.completions.create({
