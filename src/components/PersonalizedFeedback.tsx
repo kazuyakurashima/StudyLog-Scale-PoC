@@ -24,8 +24,7 @@ export default function PersonalizedFeedback({
   const [messages, setMessages] = useState<PersonalizedMessage[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showCustomMessage, setShowCustomMessage] = useState(false)
-  const [customMessage, setCustomMessage] = useState('')
+  // カスタムメッセージ機能は統合のため削除
 
   useEffect(() => {
     loadPersonalizedMessages()
@@ -76,16 +75,7 @@ export default function PersonalizedFeedback({
     await onSendFeedback(recordId, message.message, message.emoji)
   }
 
-  const handleCustomMessageSend = async () => {
-    if (!customMessage.trim()) {
-      alert('メッセージを入力してください')
-      return
-    }
-    
-    await onSendFeedback(recordId, customMessage.trim(), '💬')
-    setCustomMessage('')
-    setShowCustomMessage(false)
-  }
+  // カスタムメッセージ送信機能は削除（統合のため）
 
   if (reactionSent?.recordId === recordId) {
     return (
@@ -149,48 +139,10 @@ export default function PersonalizedFeedback({
             </button>
           ))}
           
-          {/* カスタムメッセージボタン */}
-          {!showCustomMessage ? (
-            <button
-              onClick={() => setShowCustomMessage(true)}
-              className="w-full p-4 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-purple-400 hover:text-purple-600 transition-colors"
-            >
-              💬 カスタムメッセージを書く
-            </button>
-          ) : (
-            <div className="bg-white border-2 border-purple-200 rounded-xl p-4 space-y-3">
-              <textarea
-                value={customMessage}
-                onChange={(e) => setCustomMessage(e.target.value)}
-                maxLength={500}
-                className="w-full min-h-20 p-3 border border-slate-200 rounded-lg focus:border-purple-400 focus:ring-2 focus:ring-purple-100 resize-none"
-                placeholder="オリジナルの応援メッセージを書いてください..."
-              />
-              <div className="flex justify-between items-center">
-                <div className="text-sm text-slate-500">
-                  {customMessage.length}/500文字
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setShowCustomMessage(false)
-                      setCustomMessage('')
-                    }}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    キャンセル
-                  </button>
-                  <button
-                    onClick={handleCustomMessageSend}
-                    disabled={sending || !customMessage.trim()}
-                    className="px-6 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {sending ? '送信中...' : '送信'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* カスタムメッセージ機能は統合のため削除 */}
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
+            💡 より詳しいメッセージを送りたい場合は、下の「メッセージを送る」セクションをご利用ください
+          </div>
         </div>
       )}
     </div>
