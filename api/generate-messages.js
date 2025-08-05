@@ -30,7 +30,9 @@ const PARENT_SYSTEM_PROMPT = `あなたは愛情深い日本の保護者とし�
 
 【重要】今回の学習データの科目情報のみを使用し、他の科目の情報は絶対に含めないでください。
 
-各メッセージは以下のJSON形式で返してください：
+【必須】各メッセージは必ず異なる内容にし、学習データの具体的な数値（正解率、問題数など）を含めてください。
+
+必ず以下のJSON形式のみで返答してください（他の文章は一切含めない）：
 {
   "messages": [
     {"message": "理科実験問題8割正解、よく頑張ったね😊", "emoji": "😊", "type": "encouraging"},
@@ -65,7 +67,9 @@ const TEACHER_SYSTEM_PROMPT = `あなたは経験豊富な中学受験指導の�
 
 【重要】今回の学習データの科目情報のみを使用し、他の科目の情報は絶対に含めないでください。
 
-各メッセージは以下のJSON形式で返してください：
+【必須】各メッセージは必ず異なる内容にし、学習データの具体的な数値（正解率、問題数など）を含めてください。
+
+必ず以下のJSON形式のみで返答してください（他の文章は一切含めない）：
 {
   "messages": [
     {"message": "理科観察問題75%正解、確実に力ついてます📈", "emoji": "📈", "type": "encouraging"},
@@ -74,18 +78,23 @@ const TEACHER_SYSTEM_PROMPT = `あなたは経験豊富な中学受験指導の�
   ]
 }`;
 
-function getDefaultMessages(senderType) {
+function getDefaultMessages(senderType, subjectName = '', studyData = null) {
+  // 個別データを反映したデフォルトメッセージを生成
+  const accuracy = studyData ? Math.round((studyData.questionsCorrect / studyData.questionsTotal) * 100) : 0;
+  const correctCount = studyData ? studyData.questionsCorrect : 0;
+  const totalCount = studyData ? studyData.questionsTotal : 0;
+  
   if (senderType === 'parent') {
     return [
-      { message: "今日もよく頑張ったね！😊", emoji: "😊", type: "encouraging" },
-      { message: "コツコツ続ける姿が素晴らしい🎯", emoji: "🎯", type: "specific_praise" },
-      { message: "パパママも応援してるよ💝", emoji: "💝", type: "loving" }
+      { message: `${subjectName}${accuracy}%、今日もよく頑張ったね😊`, emoji: "😊", type: "encouraging" },
+      { message: `${subjectName}${correctCount}問正解、成長してるね🎯`, emoji: "🎯", type: "specific_praise" },
+      { message: `${subjectName}の勉強、パパママも応援してるよ💝`, emoji: "💝", type: "loving" }
     ];
   } else {
     return [
-      { message: "着実に力がついています📈", emoji: "📈", type: "encouraging" },
-      { message: "この調子で継続しましょう🎯", emoji: "🎯", type: "instructional" },
-      { message: "次のステップに進みましょう💪", emoji: "💪", type: "motivational" }
+      { message: `${subjectName}${accuracy}%、着実に力がついています📈`, emoji: "📈", type: "encouraging" },
+      { message: `${subjectName}${totalCount}問中${correctCount}問正解、素晴らしいです🎯`, emoji: "🎯", type: "instructional" },
+      { message: `${subjectName}、この調子で次のステップに進みましょう💪`, emoji: "💪", type: "motivational" }
     ];
   }
 }
@@ -129,6 +138,8 @@ ${JSON.stringify(studyHistory, null, 2)}
 【重要】この${subjectName}の学習記録に関してのみメッセージを作成してください。他の科目の情報は一切使用しないでください。`;
 
     // GPT-4o-mini: 高性能かつ最もコスト効率の良いモデルを使用
+    console.log('🚀 OpenAI APIに送信するプロンプト:', { systemPrompt: systemPrompt.substring(0, 200) + '...', userPrompt });
+    
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -142,23 +153,36 @@ ${JSON.stringify(studyHistory, null, 2)}
         }
       ],
       max_tokens: 800,
-      temperature: 0.6
+      temperature: 0.8  // 多様性を高めるため温度を上げる
     });
+
+    console.log('📦 OpenAI APIからの応答:', response.choices[0]?.message?.content);
 
     const content = response.choices[0]?.message?.content;
     if (content) {
       try {
         const parsed = JSON.parse(content);
+        console.log('✅ JSON解析成功:', parsed);
         return res.status(200).json({ messages: parsed.messages });
       } catch (parseError) {
-        console.error('Failed to parse OpenAI response:', parseError);
-        return res.status(200).json({ messages: getDefaultMessages(senderType) });
+        console.error('❌ JSON解析失敗:', parseError, 'Raw content:', content);
+        return res.status(200).json({ messages: getDefaultMessages(senderType, subjectName, studyData) });
       }
     }
     
-    return res.status(200).json({ messages: getDefaultMessages(senderType) });
+    console.log('⚠️ OpenAI応答が空のため、デフォルトメッセージを使用');
+    return res.status(200).json({ messages: getDefaultMessages(senderType, subjectName, studyData) });
   } catch (error) {
     console.error('OpenAI API error:', error);
-    return res.status(200).json({ messages: getDefaultMessages(req.body.senderType || 'parent') });
+    const subjectMapping = {
+      aptitude: '適性',
+      japanese: '国語', 
+      math: '算数',
+      science: '理科',
+      social: '社会'
+    };
+    const fallbackSubject = req.body.studyData?.subject ? 
+      (subjectMapping[req.body.studyData.subject] || req.body.studyData.subject) : '';
+    return res.status(200).json({ messages: getDefaultMessages(req.body.senderType || 'parent', fallbackSubject, req.body.studyData) });
   }
 }
