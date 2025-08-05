@@ -84,8 +84,10 @@ export async function generatePersonalizedMessages(
     const userPrompt = `学習データ: ${JSON.stringify(studyData, null, 2)}
 学習履歴: ${JSON.stringify(studyHistory, null, 2)}`;
 
+    // GPT-4o-mini: 高性能かつ最もコスト効率の良いモデルを使用
+    // 入力: $0.15 / 1M tokens, 出力: $0.60 / 1M tokens (2024年時点)
     const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
@@ -96,8 +98,8 @@ export async function generatePersonalizedMessages(
           content: userPrompt
         }
       ],
-      max_tokens: 1000,
-      temperature: 0.7
+      max_tokens: 800, // コスト削減のため適度に制限
+      temperature: 0.6 // 一貫性とクリエイティビティのバランス
     });
 
     const content = response.choices[0]?.message?.content;
