@@ -90,7 +90,7 @@ function getPersonalizedFallbackMessages(senderType, subjectName = '', studyData
   if (senderType === 'parent') {
     return [
       { message: `${subjectName}${accuracy}%、今日もよく頑張ったね😊`, emoji: "😊", type: "encouraging" },
-      { message: `${subjectName}${correctCount}問正解、成長してるね🎯`, emoji: "🎯", type: "specific_praise" },
+      { message: `${subjectName}${totalCount}問中${correctCount}問正解、成長してるね🎯`, emoji: "🎯", type: "specific_praise" },
       { message: `${continuationDays}日継続中、パパママも応援してるよ💝`, emoji: "💝", type: "loving" }
     ];
   } else {

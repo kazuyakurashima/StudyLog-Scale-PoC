@@ -95,7 +95,7 @@ function getPersonalizedFallbackMessages(
         type: "encouraging" 
       },
       { 
-        message: `${subjectName}${correctCount}問正解、成長してるね🎯`, 
+        message: `${subjectName}${totalCount}問中${correctCount}問正解、成長してるね🎯`, 
         emoji: "🎯", 
         type: "specific_praise" 
       },
