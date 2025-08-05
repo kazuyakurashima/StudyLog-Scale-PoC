@@ -31,12 +31,13 @@ export default function PersonalizedFeedback({
   }, [recordId, senderType])
 
   const loadPersonalizedMessages = async () => {
+    let studyHistory = null;
     try {
       setLoading(true)
       setError(null)
       
       // 学習履歴データを取得
-      const studyHistory = await getStudyHistory(recordId)
+      studyHistory = await getStudyHistory(recordId)
       
       const personalizedMessages = await generatePersonalizedMessages(
         studyData,
@@ -48,10 +49,76 @@ export default function PersonalizedFeedback({
     } catch (err) {
       console.error('個別最適化メッセージの生成に失敗:', err)
       setError('メッセージの生成に失敗しました')
-      // フォールバック: デフォルトメッセージを使用
-      setMessages(getDefaultMessages(senderType))
+      // フォールバック: 学習データを反映したメッセージを使用
+      // studyHistoryがnullの場合はデフォルト値を使用
+      const fallbackHistory = studyHistory || { 
+        recentRecords: [], 
+        totalDays: 1, 
+        continuationDays: 1, 
+        subjectAccuracy: {} 
+      };
+      setMessages(getPersonalizedFallbackMessages(studyData, fallbackHistory, senderType))
     } finally {
       setLoading(false)
+    }
+  }
+
+  const getPersonalizedFallbackMessages = (
+    studyData: StudyData,
+    studyHistory: StudyHistory,
+    senderType: SenderType
+  ): PersonalizedMessage[] => {
+    // 科目名マッピング
+    const subjectMapping: Record<string, string> = {
+      aptitude: '適性',
+      japanese: '国語', 
+      math: '算数',
+      science: '理科',
+      social: '社会'
+    };
+    
+    const subjectName = subjectMapping[studyData.subject] || studyData.subject;
+    const accuracy = Math.round((studyData.questionsCorrect / studyData.questionsTotal) * 100);
+    const correctCount = studyData.questionsCorrect;
+    const totalCount = studyData.questionsTotal;
+    const continuationDays = studyHistory.continuationDays;
+    
+    if (senderType === 'parent') {
+      return [
+        { 
+          message: `${subjectName}${accuracy}%、今日もよく頑張ったね😊`, 
+          emoji: "😊", 
+          type: "encouraging" 
+        },
+        { 
+          message: `${subjectName}${correctCount}問正解、成長してるね🎯`, 
+          emoji: "🎯", 
+          type: "specific_praise" 
+        },
+        { 
+          message: `${continuationDays}日継続中、パパママも応援してるよ💝`, 
+          emoji: "💝", 
+          type: "loving" 
+        }
+      ];
+    } else {
+      return [
+        { 
+          message: `${subjectName}${accuracy}%、着実に力がついています📈`, 
+          emoji: "📈", 
+          type: "encouraging" 
+        },
+        { 
+          message: `${subjectName}${totalCount}問中${correctCount}問正解、素晴らしいです🎯`, 
+          emoji: "🎯", 
+          type: "instructional" 
+        },
+        { 
+          message: `${continuationDays}日継続、この調子で次のステップへ💪`, 
+          emoji: "💪", 
+          type: "motivational" 
+        }
+      ];
     }
   }
 

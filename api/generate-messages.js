@@ -78,23 +78,43 @@ const TEACHER_SYSTEM_PROMPT = `あなたは経験豊富な中学受験指導の�
   ]
 }`;
 
-function getDefaultMessages(senderType, subjectName = '', studyData = null) {
-  // 個別データを反映したデフォルトメッセージを生成
+function getPersonalizedFallbackMessages(senderType, subjectName = '', studyData = null, studyHistory = null) {
+  // 個別データを反映したフォールバックメッセージを生成
   const accuracy = studyData ? Math.round((studyData.questionsCorrect / studyData.questionsTotal) * 100) : 0;
   const correctCount = studyData ? studyData.questionsCorrect : 0;
   const totalCount = studyData ? studyData.questionsTotal : 0;
+  const continuationDays = studyHistory ? studyHistory.continuationDays : 1;
+  
+  console.log('🔄 個別データ反映フォールバックメッセージ生成:', { subjectName, accuracy, correctCount, totalCount, continuationDays, senderType });
   
   if (senderType === 'parent') {
     return [
       { message: `${subjectName}${accuracy}%、今日もよく頑張ったね😊`, emoji: "😊", type: "encouraging" },
       { message: `${subjectName}${correctCount}問正解、成長してるね🎯`, emoji: "🎯", type: "specific_praise" },
-      { message: `${subjectName}の勉強、パパママも応援してるよ💝`, emoji: "💝", type: "loving" }
+      { message: `${continuationDays}日継続中、パパママも応援してるよ💝`, emoji: "💝", type: "loving" }
     ];
   } else {
     return [
       { message: `${subjectName}${accuracy}%、着実に力がついています📈`, emoji: "📈", type: "encouraging" },
       { message: `${subjectName}${totalCount}問中${correctCount}問正解、素晴らしいです🎯`, emoji: "🎯", type: "instructional" },
-      { message: `${subjectName}、この調子で次のステップに進みましょう💪`, emoji: "💪", type: "motivational" }
+      { message: `${continuationDays}日継続、この調子で次のステップへ💪`, emoji: "💪", type: "motivational" }
+    ];
+  }
+}
+
+function getDefaultMessages(senderType, subjectName = '', studyData = null) {
+  // 汎用的なデフォルトメッセージ（最後の手段用）
+  if (senderType === 'parent') {
+    return [
+      { message: "今日もよく頑張ったね！😊", emoji: "😊", type: "encouraging" },
+      { message: "コツコツ続ける姿が素晴らしい🎯", emoji: "🎯", type: "specific_praise" },
+      { message: "パパママも応援してるよ💝", emoji: "💝", type: "loving" }
+    ];
+  } else {
+    return [
+      { message: "着実に力がついています📈", emoji: "📈", type: "encouraging" },
+      { message: "この調子で継続しましょう🎯", emoji: "🎯", type: "instructional" },
+      { message: "次のステップに進みましょう💪", emoji: "💪", type: "motivational" }
     ];
   }
 }
@@ -166,14 +186,14 @@ ${JSON.stringify(studyHistory, null, 2)}
         return res.status(200).json({ messages: parsed.messages });
       } catch (parseError) {
         console.error('❌ JSON解析失敗:', parseError, 'Raw content:', content);
-        return res.status(200).json({ messages: getDefaultMessages(senderType, subjectName, studyData) });
+        return res.status(200).json({ messages: getPersonalizedFallbackMessages(senderType, subjectName, studyData, studyHistory) });
       }
     }
     
-    console.log('⚠️ OpenAI応答が空のため、デフォルトメッセージを使用');
-    return res.status(200).json({ messages: getDefaultMessages(senderType, subjectName, studyData) });
+    console.log('⚠️ OpenAI応答が空のため、個別データ反映フォールバックメッセージを使用');
+    return res.status(200).json({ messages: getPersonalizedFallbackMessages(senderType, subjectName, studyData, studyHistory) });
   } catch (error) {
-    console.error('OpenAI API error:', error);
+    console.error('❌ OpenAI API エラー:', error);
     const subjectMapping = {
       aptitude: '適性',
       japanese: '国語', 
@@ -183,6 +203,14 @@ ${JSON.stringify(studyHistory, null, 2)}
     };
     const fallbackSubject = req.body.studyData?.subject ? 
       (subjectMapping[req.body.studyData.subject] || req.body.studyData.subject) : '';
-    return res.status(200).json({ messages: getDefaultMessages(req.body.senderType || 'parent', fallbackSubject, req.body.studyData) });
+    console.log('🔄 エラー発生のため個別データ反映フォールバックメッセージを使用');
+    return res.status(200).json({ 
+      messages: getPersonalizedFallbackMessages(
+        req.body.senderType || 'parent', 
+        fallbackSubject, 
+        req.body.studyData, 
+        req.body.studyHistory
+      ) 
+    });
   }
 }
