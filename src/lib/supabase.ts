@@ -53,6 +53,20 @@ export interface Reflection {
   updated_at: string
 }
 
+export interface GeneratedMessage {
+  id: number
+  record_id: number
+  sender_type: 'parent' | 'teacher'
+  messages: Array<{
+    message: string
+    emoji: string
+    type: 'encouraging' | 'specific_praise' | 'motivational' | 'loving' | 'instructional'
+    source?: 'ai' | 'fallback'
+  }>
+  generated_at: string
+  created_at: string
+}
+
 // Database tables type definition
 export interface Database {
   public: {
@@ -71,6 +85,11 @@ export interface Database {
         Row: Reflection
         Insert: Omit<Reflection, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Reflection, 'id' | 'created_at' | 'updated_at'>>
+      }
+      generated_messages: {
+        Row: GeneratedMessage
+        Insert: Omit<GeneratedMessage, 'id' | 'created_at'>
+        Update: Partial<Omit<GeneratedMessage, 'id' | 'created_at'>>
       }
     }
   }

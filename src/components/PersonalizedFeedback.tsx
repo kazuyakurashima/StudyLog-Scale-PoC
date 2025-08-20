@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { generatePersonalizedMessages, type PersonalizedMessage, type StudyData, type StudyHistory, type SenderType } from '../lib/openai'
-import { supabase } from '../lib/supabase'
+import { supabase, type GeneratedMessage } from '../lib/supabase'
 
 interface PersonalizedFeedbackProps {
   recordId: number
@@ -24,6 +24,7 @@ export default function PersonalizedFeedback({
   const [messages, setMessages] = useState<PersonalizedMessage[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isFromCache, setIsFromCache] = useState(false)
   // カスタムメッセージ機能は統合のため削除
 
   useEffect(() => {
@@ -36,7 +37,35 @@ export default function PersonalizedFeedback({
       setLoading(true)
       setError(null)
       
-      console.log('🚀 メッセージ生成開始 - recordId:', recordId, 'studyData:', {
+      console.log('🚀 メッセージ読み込み開始 - recordId:', recordId, 'senderType:', senderType);
+      
+      // まずキャッシュされたメッセージをチェック（テーブルが存在する場合のみ）
+      try {
+        console.log('🔍 キャッシュチェック開始:', { recordId, senderType });
+        const { data: cachedMessage, error: cacheError } = await supabase
+          .from('generated_messages')
+          .select('*')
+          .eq('record_id', recordId)
+          .eq('sender_type', senderType)
+          .single()
+        
+        console.log('🔍 キャッシュクエリ結果:', { cachedMessage, cacheError });
+        
+        if (cachedMessage && !cacheError) {
+          console.log('✅ キャッシュされたメッセージを使用:', cachedMessage.messages);
+          setMessages(cachedMessage.messages)
+          setIsFromCache(true)
+          setLoading(false)
+          return
+        } else {
+          console.log('❌ キャッシュなし、新規生成します:', { cacheError: cacheError?.message });
+        }
+      } catch (cacheCheckError) {
+        console.log('⚠️ キャッシュチェックでエラー（テーブル未作成？）:', cacheCheckError);
+        console.log('🔄 キャッシュを使わずに新規生成します');
+      }
+      
+      console.log('🔄 新しいメッセージを生成 - recordId:', recordId, 'studyData:', {
         subject: studyData.subject,
         questionsTotal: studyData.questionsTotal,
         questionsCorrect: studyData.questionsCorrect,
@@ -54,7 +83,12 @@ export default function PersonalizedFeedback({
       )
       
       console.log('✅ 生成されたメッセージ:', personalizedMessages);
+      
+      // 生成されたメッセージをデータベースにキャッシュ
+      await saveGeneratedMessages(recordId, senderType, personalizedMessages)
+      
       setMessages(personalizedMessages)
+      setIsFromCache(false)
     } catch (err) {
       console.error('個別最適化メッセージの生成に失敗:', err)
       setError('メッセージの生成に失敗しました')
@@ -73,9 +107,56 @@ export default function PersonalizedFeedback({
       };
       
       console.log('🔄 直接フォールバック使用 - studyData:', studyData, 'fallbackHistory:', directFallbackHistory);
-      setMessages(getPersonalizedFallbackMessages(studyData, directFallbackHistory, senderType))
+      const fallbackMessages = getPersonalizedFallbackMessages(studyData, directFallbackHistory, senderType)
+      
+      // フォールバックメッセージもキャッシュに保存
+      await saveGeneratedMessages(recordId, senderType, fallbackMessages)
+      
+      setMessages(fallbackMessages)
+      setIsFromCache(false)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const saveGeneratedMessages = async (recordId: number, senderType: SenderType, messages: PersonalizedMessage[]) => {
+    try {
+      console.log('💾 メッセージをキャッシュに保存:', { 
+        recordId, 
+        senderType, 
+        messagesCount: messages.length,
+        messages: messages 
+      });
+      
+      const upsertData = {
+        record_id: recordId,
+        sender_type: senderType,
+        messages: messages,
+        generated_at: new Date().toISOString()
+      };
+      
+      console.log('💾 Upsertデータ:', upsertData);
+      
+      const { data, error } = await supabase
+        .from('generated_messages')
+        .upsert(upsertData, {
+          onConflict: 'record_id,sender_type'
+        })
+        .select()
+      
+      console.log('💾 Upsert結果:', { data, error });
+      
+      if (error) {
+        console.error('❌ メッセージキャッシュの保存に失敗:', error);
+        // テーブルが存在しない場合の詳細ログ
+        if (error.message.includes('does not exist')) {
+          console.error('🚨 generated_messagesテーブルが存在しません！create-generated-messages-table.sqlを実行してください');
+        }
+      } else {
+        console.log('✅ メッセージキャッシュ保存完了:', data);
+      }
+    } catch (err) {
+      console.error('❌ メッセージキャッシュ保存エラー:', err);
     }
   }
 
@@ -239,7 +320,9 @@ export default function PersonalizedFeedback({
       {loading && (
         <div className="bg-blue-50 p-4 rounded-xl flex items-center gap-3">
           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-          <span className="text-blue-700">あなた専用の応援メッセージを生成中...</span>
+          <span className="text-blue-700">
+            {messages.length > 0 ? '応援メッセージを読み込み中...' : 'あなた専用の応援メッセージを生成中...'}
+          </span>
         </div>
       )}
 
@@ -277,6 +360,16 @@ export default function PersonalizedFeedback({
                     <span className="text-xs text-slate-500">
                       {senderType === 'parent' ? '保護者' : '指導者'}向け
                     </span>
+                    {/* メッセージの生成元を表示 */}
+                    {message.source && (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        message.source === 'ai' 
+                          ? 'bg-purple-100 text-purple-700' 
+                          : 'bg-orange-100 text-orange-700'
+                      }`}>
+                        {message.source === 'ai' ? '🤖 AI生成' : '📝 フォールバック'}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -284,8 +377,16 @@ export default function PersonalizedFeedback({
           ))}
           
           {/* カスタムメッセージ機能は統合のため削除 */}
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
-            💡 より詳しいメッセージを送りたい場合は、下の「メッセージを送る」セクションをご利用ください
+          <div className="mt-4 space-y-2">
+            <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
+              💡 より詳しいメッセージを送りたい場合は、下の「メッセージを送る」セクションをご利用ください
+            </div>
+            {isFromCache && (
+              <div className="p-2 bg-green-50 rounded-lg text-sm text-green-700 flex items-center gap-2">
+                <span>⚡</span>
+                <span>高速表示: 以前に生成されたメッセージを表示中</span>
+              </div>
+            )}
           </div>
         </div>
       )}

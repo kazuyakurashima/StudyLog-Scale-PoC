@@ -1,22 +1,20 @@
--- 既存のテーブル一覧を確認
+-- テーブルの存在確認
 SELECT table_name, table_type 
 FROM information_schema.tables 
 WHERE table_schema = 'public' 
-AND table_name IN ('study_records', 'feedbacks', 'reflections');
+AND table_name LIKE '%message%';
 
--- 各テーブルの構造を確認
-SELECT table_name, column_name, data_type, is_nullable, column_default
+-- generated_messagesテーブルの構造確認
+SELECT column_name, data_type, is_nullable, column_default
 FROM information_schema.columns 
 WHERE table_schema = 'public' 
-AND table_name IN ('study_records', 'feedbacks', 'reflections')
-ORDER BY table_name, ordinal_position;
+AND table_name = 'generated_messages'
+ORDER BY ordinal_position;
 
--- RLSの状況を確認
-SELECT schemaname, tablename, rowsecurity
-FROM pg_tables 
-WHERE tablename IN ('study_records', 'feedbacks', 'reflections');
+-- テーブル内のデータ確認
+SELECT COUNT(*) as total_records FROM public.generated_messages;
 
--- 既存のポリシーを確認
-SELECT schemaname, tablename, policyname, permissive, roles, cmd
-FROM pg_policies 
-WHERE tablename IN ('study_records', 'feedbacks', 'reflections');
+-- 最新の5件を確認
+SELECT * FROM public.generated_messages 
+ORDER BY created_at DESC 
+LIMIT 5;
