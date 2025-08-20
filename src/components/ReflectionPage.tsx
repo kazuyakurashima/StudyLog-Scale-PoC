@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import type { Reflection } from '../lib/supabase'
 
 interface ReflectionPageProps {
-  userRole: 'student' | 'teacher'
+  userRole: 'student' | 'teacher' | 'parent'
 }
 
 export default function ReflectionPage({ userRole }: ReflectionPageProps) {
@@ -18,6 +18,11 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
   const [improvementPoints, setImprovementPoints] = useState('')
   const [editingReflection, setEditingReflection] = useState<Reflection | null>(null)
   const [teacherComment, setTeacherComment] = useState('')
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [editingReflectionForm, setEditingReflectionForm] = useState<Reflection | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [showSuccess, setShowSuccess] = useState(false)
+  const [formHighlight, setFormHighlight] = useState(false)
 
   useEffect(() => {
     loadReflections()
@@ -25,6 +30,24 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
     const today = new Date().toISOString().split('T')[0]
     setSelectedDate(today)
   }, [])
+
+  // 日付が変更された時に既存の振り返りをチェック
+  useEffect(() => {
+    if (selectedDate && reflections.length > 0) {
+      const existingReflection = reflections.find(r => r.date === selectedDate)
+      if (existingReflection) {
+        setEditingReflectionForm(existingReflection)
+        setReflectionContent(existingReflection.reflection_content)
+        setImprovementPoints(existingReflection.improvement_points || '')
+        setIsEditMode(true)
+      } else {
+        setEditingReflectionForm(null)
+        setReflectionContent('')
+        setImprovementPoints('')
+        setIsEditMode(false)
+      }
+    }
+  }, [selectedDate, reflections])
 
   const loadReflections = async () => {
     try {
@@ -59,10 +82,7 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
       setIsSubmitting(true)
       setError(null)
 
-      // 同じ日付の振り返りが既に存在するかチェック
-      const existingReflection = reflections.find(r => r.date === selectedDate)
-      
-      if (existingReflection) {
+      if (isEditMode && editingReflectionForm) {
         // 更新
         const { error: updateError } = await supabase
           .from('reflections')
@@ -70,7 +90,7 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
             reflection_content: reflectionContent.trim(),
             improvement_points: improvementPoints.trim() || null
           })
-          .eq('id', existingReflection.id)
+          .eq('id', editingReflectionForm.id)
 
         if (updateError) throw updateError
       } else {
@@ -89,9 +109,26 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
       // フォームをリセット
       setReflectionContent('')
       setImprovementPoints('')
+      setIsEditMode(false)
+      setEditingReflectionForm(null)
       
       // データを再読み込み
       await loadReflections()
+      
+      // 成功メッセージを表示
+      const message = isEditMode ? '✅ 振り返りを更新しました！' : '✅ 振り返りを保存しました！'
+      setSuccessMessage(message)
+      setShowSuccess(true)
+      
+      // フォームを一時的にハイライト
+      setFormHighlight(true)
+      setTimeout(() => setFormHighlight(false), 1000)
+      
+      // 3秒後に成功メッセージを非表示
+      setTimeout(() => {
+        setShowSuccess(false)
+        setTimeout(() => setSuccessMessage(null), 300) // フェードアウト後にクリア
+      }, 3000)
       
     } catch (err) {
       console.error('振り返りの保存でエラーが発生しました:', err)
@@ -99,6 +136,16 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleCancelEdit = () => {
+    setReflectionContent('')
+    setImprovementPoints('')
+    setIsEditMode(false)
+    setEditingReflectionForm(null)
+    // 今日の日付に戻す
+    const today = new Date().toISOString().split('T')[0]
+    setSelectedDate(today)
   }
 
   const handleAddTeacherComment = async (reflectionId: number) => {
@@ -123,6 +170,16 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
       setTeacherComment('')
       setEditingReflection(null)
       await loadReflections()
+      
+      // 成功メッセージを表示
+      setSuccessMessage('✅ 先生のコメントを追加しました！')
+      setShowSuccess(true)
+      
+      // 3秒後に成功メッセージを非表示
+      setTimeout(() => {
+        setShowSuccess(false)
+        setTimeout(() => setSuccessMessage(null), 300)
+      }, 3000)
       
     } catch (err) {
       console.error('先生コメントの保存でエラーが発生しました:', err)
@@ -169,7 +226,9 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
           <p className="text-center text-slate-600">
             {userRole === 'student' 
               ? '学習を振り返って、成長につなげよう' 
-              : '生徒の振り返りにコメントして、成長をサポートしよう'}
+              : userRole === 'teacher'
+              ? '生徒の振り返りにコメントして、成長をサポートしよう'
+              : '生徒の振り返りを確認して、成長を見守ろう'}
           </p>
         </div>
 
@@ -179,12 +238,26 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
           </div>
         )}
 
+        {/* 成功メッセージ */}
+        {successMessage && (
+          <div className={`mb-6 p-4 bg-green-50 border border-green-200 rounded-lg transition-all duration-300 ${
+            showSuccess ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform -translate-y-2'
+          }`}>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl animate-bounce">🎉</span>
+              <p className="text-green-700 font-medium">{successMessage}</p>
+            </div>
+          </div>
+        )}
+
         {/* 生徒用: 振り返り記入フォーム */}
         {userRole === 'student' && (
-          <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <div className={`bg-white rounded-xl shadow-lg p-6 mb-8 transition-all duration-1000 ${
+            formHighlight ? 'ring-4 ring-green-200 shadow-green-100 shadow-2xl' : ''
+          }`}>
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <span className="text-2xl">✍️</span>
-              振り返りを記入する
+              <span className="text-2xl">{isEditMode ? '📝' : '✍️'}</span>
+              {isEditMode ? '振り返りを編集する' : '振り返りを記入する'}
             </h2>
             
             <form onSubmit={handleSubmitReflection} className="space-y-6">
@@ -199,9 +272,9 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
-                {reflections.find(r => r.date === selectedDate) && (
-                  <p className="text-sm text-amber-600 mt-1">
-                    ⚠️ この日付の振り返りは既に存在します。保存すると上書きされます。
+                {isEditMode && (
+                  <p className="text-sm text-blue-600 mt-1">
+                    📝 既存の振り返りを編集中です。
                   </p>
                 )}
               </div>
@@ -237,13 +310,38 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isSubmitting ? '保存中...' : '振り返りを保存'}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`flex-1 py-3 text-white rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                    isSubmitting 
+                      ? 'bg-blue-400 cursor-not-allowed' 
+                      : 'bg-blue-500 hover:bg-blue-600 hover:shadow-lg transform hover:scale-105'
+                  }`}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                      保存中...
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-lg">{isEditMode ? '💾' : '📝'}</span>
+                      {isEditMode ? '変更を保存' : '振り返りを保存'}
+                    </>
+                  )}
+                </button>
+                {isEditMode && (
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="px-6 py-3 bg-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-400 transition-colors"
+                  >
+                    キャンセル
+                  </button>
+                )}
+              </div>
             </form>
           </div>
         )}
@@ -263,9 +361,27 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
                     <h3 className="text-lg font-semibold text-slate-800">
                       {formatDateDisplay(reflection.date)}
                     </h3>
-                    <span className="text-sm text-slate-500">
-                      記録: {formatDateTimeDisplay(reflection.created_at)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {userRole === 'student' && (
+                        <button
+                          onClick={() => {
+                            setSelectedDate(reflection.date)
+                            setReflectionContent(reflection.reflection_content)
+                            setImprovementPoints(reflection.improvement_points || '')
+                            setEditingReflectionForm(reflection)
+                            setIsEditMode(true)
+                            // フォームまでスクロール
+                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                          }}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        >
+                          ✏️ 編集
+                        </button>
+                      )}
+                      <span className="text-sm text-slate-500">
+                        記録: {formatDateTimeDisplay(reflection.created_at)}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="space-y-4">
@@ -287,7 +403,7 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
                         <h4 className="font-medium text-purple-800 mb-2">👨‍🏫 先生からのコメント</h4>
                         <p className="text-slate-700 whitespace-pre-wrap">{reflection.teacher_comment}</p>
                       </div>
-                    ) : userRole === 'teacher' && (
+                    ) : userRole === 'teacher' ? (
                       <div className="bg-slate-50 p-4 rounded-lg">
                         {editingReflection?.id === reflection.id ? (
                           <div className="space-y-3">
@@ -302,9 +418,23 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
                               <button
                                 onClick={() => handleAddTeacherComment(reflection.id)}
                                 disabled={isSubmitting}
-                                className="px-4 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                className={`px-4 py-2 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
+                                  isSubmitting 
+                                    ? 'bg-blue-400 cursor-not-allowed' 
+                                    : 'bg-blue-500 hover:bg-blue-600 hover:shadow-lg transform hover:scale-105'
+                                }`}
                               >
-                                {isSubmitting ? '保存中...' : 'コメント保存'}
+                                {isSubmitting ? (
+                                  <>
+                                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                    保存中...
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>💬</span>
+                                    コメント保存
+                                  </>
+                                )}
                               </button>
                               <button
                                 onClick={() => {
@@ -326,7 +456,7 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
                           </button>
                         )}
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               ))}

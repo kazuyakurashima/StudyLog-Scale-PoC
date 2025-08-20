@@ -109,18 +109,16 @@ function App() {
                 >
                   📚 学習履歴
                 </button>
-                {userRole === 'teacher' && (
-                  <button
-                    onClick={() => setCurrentView('reflection')}
-                    className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
-                      currentView === 'reflection' 
-                        ? 'bg-blue-500 text-white' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    🤔 振り返り
-                  </button>
-                )}
+                <button
+                  onClick={() => setCurrentView('reflection')}
+                  className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
+                    currentView === 'reflection' 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  🤔 振り返り
+                </button>
               </>
             )}
 
@@ -149,7 +147,7 @@ function App() {
       )}
       {currentView === 'history' && <HistoryPage />}
       {currentView === 'reflection' && (
-        <ReflectionPage userRole={userRole === 'teacher' ? 'teacher' : 'student'} />
+        <ReflectionPage userRole={userRole === 'student' ? 'student' : userRole === 'teacher' ? 'teacher' : 'parent'} />
       )}
       {currentView === 'userSwitch' && (
         <div className="p-8 max-w-4xl mx-auto">
