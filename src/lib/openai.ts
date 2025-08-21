@@ -183,7 +183,7 @@ async function generateMessagesDirectly(
   const systemPrompt = senderType === 'parent' ? PARENT_SYSTEM_PROMPT : TEACHER_SYSTEM_PROMPT;
   
   // 科目名マッピング
-  const subjectMapping = {
+  const subjectMapping: Record<string, string> = {
     aptitude: '適性',
     japanese: '国語', 
     math: '算数',
