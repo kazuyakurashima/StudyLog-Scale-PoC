@@ -600,7 +600,16 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
                               </span>
                             )}
                             <span className="text-xs text-slate-500 ml-auto">
-                              {new Date(feedback.created_at).toLocaleDateString('ja-JP')}
+                              {(() => {
+                                const date = new Date(feedback.created_at)
+                                const jstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000))
+                                return jstDate.toLocaleString('ja-JP', {
+                                  month: 'numeric',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })
+                              })()}
                             </span>
                           </div>
                           {feedback.message && 

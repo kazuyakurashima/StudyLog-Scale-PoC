@@ -8,6 +8,7 @@ import { LoginPage } from "./components/LoginPage"
 import { RoleSelectPage } from "./components/RoleSelectPage"
 import { useAuth } from "./lib/useAuth"
 import "./App.css"
+import "./styles/animations.css"
 
 function App() {
   const [currentView, setCurrentView] = useState<'dashboard' | 'form' | 'feedback' | 'history' | 'reflection'>('dashboard')

@@ -12,6 +12,7 @@ interface InputProps {
   min?: string
   max?: string
   required?: boolean
+  disabled?: boolean
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -24,6 +25,7 @@ export const Input: React.FC<InputProps> = ({
   min,
   max,
   required = false,
+  disabled = false,
 }) => {
   return (
     <input
@@ -35,6 +37,7 @@ export const Input: React.FC<InputProps> = ({
       min={min}
       max={max}
       required={required}
+      disabled={disabled}
       className={`w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors duration-300 ${className}`}
     />
   )

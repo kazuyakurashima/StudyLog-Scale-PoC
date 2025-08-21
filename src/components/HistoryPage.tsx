@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import type { StudyRecord, Feedback } from '../lib/supabase'
 import { useAuth } from '../lib/useAuth'
+import { formatDateTimeToJST } from '../lib/utils'
 
 interface HistoryRecord {
   record: StudyRecord
@@ -110,13 +111,7 @@ export default function HistoryPage() {
   }
 
   const formatDateTimeDisplay = (dateStr: string) => {
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('ja-JP', {
-      month: 'numeric',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+    return formatDateTimeToJST(dateStr)
   }
 
   const getFilteredAndSortedData = () => {

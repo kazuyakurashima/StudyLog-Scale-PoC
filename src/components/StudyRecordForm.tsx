@@ -44,7 +44,6 @@ export default function StudyRecordForm() {
       const { data, error } = await supabase
         .from('study_records')
         .select('*')
-        .eq('student_id', user.id)
         .eq('study_date', studyDate)
         .eq('subject', subject)
         .eq('content_type', contentType)
@@ -92,7 +91,6 @@ export default function StudyRecordForm() {
       const { error } = await supabase
         .from('study_records')
         .insert([{
-          student_id: user.id, // 生徒ID
           date: today, // 記録をつけた日（今日）
           study_date: studyDate, // 学習内容の実施日
           subject,

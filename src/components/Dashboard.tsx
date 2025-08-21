@@ -521,14 +521,14 @@ export default function Dashboard() {
         <div className="flex items-center justify-center gap-8 mb-4">
           <div className="text-center">
             <div className="text-5xl font-black mb-1">
-              {stats.continueDays}<span className="text-2xl">/17</span>
+              {stats.continueDays}<span className="text-2xl">/10</span>
             </div>
             <div className="text-lg opacity-80">連続日数</div>
           </div>
           <div className="text-white/50 text-4xl">|</div>
           <div className="text-center">
             <div className="text-5xl font-black mb-1">
-              {stats.cumulativeDays}<span className="text-2xl">/17</span>
+              {stats.cumulativeDays}<span className="text-2xl">/10</span>
             </div>
             <div className="text-lg opacity-80">累積日数</div>
           </div>
@@ -845,12 +845,16 @@ export default function Dashboard() {
                     </span>
                   )}
                   <span className="text-xs text-slate-500 ml-auto">
-                    {new Date(feedbackWithRecord.feedback.created_at).toLocaleDateString('ja-JP', {
-                      month: 'numeric',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
+                    {(() => {
+                      const date = new Date(feedbackWithRecord.feedback.created_at)
+                      const jstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000))
+                      return jstDate.toLocaleString('ja-JP', {
+                        month: 'numeric',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })
+                    })()}
                   </span>
                 </div>
 

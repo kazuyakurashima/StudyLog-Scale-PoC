@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Reflection } from '../lib/supabase'
 import { useAuth } from '../lib/useAuth'
+import { formatDateTimeToJST } from '../lib/utils'
 
 interface ReflectionPageProps {
   userRole: 'student' | 'teacher' | 'parent'
@@ -209,7 +210,9 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
 
   const formatDateTimeDisplay = (dateStr: string) => {
     const date = new Date(dateStr)
-    return date.toLocaleDateString('ja-JP', {
+    // UTC時間を日本時間（JST）に変換
+    const jstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000))
+    return jstDate.toLocaleString('ja-JP', {
       month: 'numeric',
       day: 'numeric',
       hour: '2-digit',

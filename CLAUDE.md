@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **StudyLog Next** is a Japanese elementary school student learning management application built for summer intensive course tracking. The app supports students, parents, and teachers with study record management, progress tracking, and feedback features.
 
 - **Target Users**: 6th grade elementary students, parents, teachers
-- **Usage Period**: July 21 - August 6, 2025 (17 days)
+- **Usage Period**: August 22 - August 31, 2025 (10 days)
 - **Tech Stack**: React 19 + TypeScript + Vite + Tailwind CSS + Supabase
 - **Current Branch**: confirm-clean
 
