@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Reflection } from '../lib/supabase'
+import { useAuth } from '../lib/useAuth'
 
 interface ReflectionPageProps {
   userRole: 'student' | 'teacher' | 'parent'
 }
 
 export default function ReflectionPage({ userRole }: ReflectionPageProps) {
+  const { user } = useAuth()
   const [reflections, setReflections] = useState<Reflection[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -25,11 +27,13 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
   const [formHighlight, setFormHighlight] = useState(false)
 
   useEffect(() => {
-    loadReflections()
-    // 今日の日付をデフォルトに設定
-    const today = new Date().toISOString().split('T')[0]
-    setSelectedDate(today)
-  }, [])
+    if (user?.id) {
+      loadReflections()
+      // 今日の日付をデフォルトに設定
+      const today = new Date().toISOString().split('T')[0]
+      setSelectedDate(today)
+    }
+  }, [user?.id])
 
   // 日付が変更された時に既存の振り返りをチェック
   useEffect(() => {
@@ -50,6 +54,8 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
   }, [selectedDate, reflections])
 
   const loadReflections = async () => {
+    if (!user?.id) return
+    
     try {
       setLoading(true)
       setError(null)
@@ -57,6 +63,7 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
       const { data, error: reflectionError } = await supabase
         .from('reflections')
         .select('*')
+        .eq('student_id', user.id)
         .order('date', { ascending: false })
 
       if (reflectionError) throw reflectionError
@@ -98,6 +105,7 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
         const { error: insertError } = await supabase
           .from('reflections')
           .insert({
+            student_id: user!.id,
             date: selectedDate,
             reflection_content: reflectionContent.trim(),
             improvement_points: improvementPoints.trim() || null

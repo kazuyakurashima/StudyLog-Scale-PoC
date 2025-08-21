@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import type { StudyRecord, Feedback } from '../lib/supabase'
 import PersonalizedFeedback from './PersonalizedFeedback'
 import type { StudyData, StudyHistory, SenderType } from '../lib/openai'
+import { USERS } from '../lib/auth'
 
 interface FeedbackPageProps {
   userRole: 'parent' | 'teacher'
@@ -20,6 +21,7 @@ interface ExtendedStudyRecord extends StudyRecord {
 }
 
 export default function FeedbackPage({ userRole }: FeedbackPageProps) {
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('')
   const [studyRecords, setStudyRecords] = useState<ExtendedStudyRecord[]>([])
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
   const [loading, setLoading] = useState(true)
@@ -29,14 +31,18 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
   const [reactionSent, setReactionSent] = useState<{recordId: number, type: string} | null>(null)
 
   useEffect(() => {
-    loadData()
-  }, [])
+    if (selectedStudentId) {
+      loadData()
+    }
+  }, [selectedStudentId])
 
   const loadData = async () => {
+    if (!selectedStudentId) return
+    
     try {
       setLoading(true)
 
-      // 最近の学習記録を取得（直近14日間に拡張）
+      // 最近の学習記録を取得（student_idフィールドがないため、すべての記録を取得）
       const fourteenDaysAgo = new Date()
       fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
       const dateLimit = fourteenDaysAgo.toISOString().split('T')[0]
@@ -47,15 +53,21 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
         .gte('date', dateLimit)
         .order('date', { ascending: false })
 
-      if (recordsError) throw recordsError
+      if (recordsError) {
+        console.error('❌ 学習記録取得エラー:', recordsError)
+        throw recordsError
+      }
 
-      // フィードバックを取得
+      // フィードバックを取得（student_idフィールドがないため、すべてのフィードバックを取得）
       const { data: allFeedbacks, error: feedbacksError } = await supabase
         .from('feedbacks')
         .select('*')
         .order('created_at', { ascending: false })
 
-      if (feedbacksError) throw feedbacksError
+      if (feedbacksError) {
+        console.error('❌ フィードバック取得エラー:', feedbacksError)
+        // フィードバックエラーは致命的ではないので続行
+      }
 
       // 学習記録を拡張形式で処理
       const extendedRecords = await processStudyRecords(records || [])
@@ -65,6 +77,9 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
 
     } catch (error) {
       console.error('❌ データ取得エラー:', error)
+      // エラー時は空のデータをセット
+      setStudyRecords([])
+      setFeedbacks([])
     } finally {
       setLoading(false)
     }
@@ -389,9 +404,32 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
         </p>
       </div>
 
+      {/* 生徒選択 */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border">
+        <label className="block text-lg font-bold text-slate-700 mb-3">
+          👧 生徒を選択してください
+        </label>
+        <select
+          value={selectedStudentId}
+          onChange={(e) => setSelectedStudentId(e.target.value)}
+          className="w-full p-4 text-lg border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+        >
+          <option value="">生徒を選択...</option>
+          {Object.values(USERS).map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* 学習記録一覧 */}
       <div className="space-y-6">
-        {studyRecords.length > 0 ? (
+        {!selectedStudentId ? (
+          <div className="text-center p-8 bg-blue-50 rounded-2xl border border-blue-200">
+            <p className="text-blue-700 text-lg">👆 上で生徒を選択してください</p>
+          </div>
+        ) : studyRecords.length > 0 ? (
           studyRecords.map((record) => {
             const recordFeedbacks = getRecordFeedbacks(record.id)
             const accuracy = Math.round((record.questions_correct / record.questions_total) * 100)

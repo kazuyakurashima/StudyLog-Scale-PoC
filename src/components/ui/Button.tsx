@@ -8,6 +8,7 @@ interface ButtonProps {
   disabled?: boolean
   className?: string
   variant?: "primary" | "secondary" | "outline"
+  type?: "button" | "submit" | "reset"
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -16,6 +17,7 @@ export const Button: React.FC<ButtonProps> = ({
   disabled = false,
   className = "",
   variant = "primary",
+  type = "button",
 }) => {
   const baseClasses =
     "inline-flex items-center justify-center rounded-xl font-medium transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -28,7 +30,7 @@ export const Button: React.FC<ButtonProps> = ({
   }
 
   return (
-    <button onClick={onClick} disabled={disabled} className={`${baseClasses} ${variantClasses[variant]} ${className}`}>
+    <button type={type} onClick={onClick} disabled={disabled} className={`${baseClasses} ${variantClasses[variant]} ${className}`}>
       {children}
     </button>
   )

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import type { StudyRecord, Feedback } from '../lib/supabase'
+import { useAuth } from '../lib/useAuth'
 
 interface DashboardStats {
   continueDays: number
@@ -57,29 +58,35 @@ interface TodayRecord {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    loadDashboardData()
-    
-    // 30秒ごとにデータを更新してフィードバックの変更を反映
-    const interval = setInterval(loadDashboardData, 30000)
-    
-    return () => clearInterval(interval)
-  }, [])
+    if (user?.id) {
+      loadDashboardData()
+      
+      // 30秒ごとにデータを更新してフィードバックの変更を反映
+      const interval = setInterval(loadDashboardData, 30000)
+      
+      return () => clearInterval(interval)
+    }
+  }, [user?.id])
 
   const loadDashboardData = async () => {
+    if (!user?.id) return
+    
     try {
       setLoading(true)
       setError(null)
 
-      // 1. 全ての学習記録を取得
+      // 1. 全ての学習記録を取得（生徒IDでフィルタ）
       const { data: allRecordsData, error: recordsError } = await supabase
         .from('study_records')
         .select('*')
+        .eq('student_id', user.id)
         .order('date', { ascending: false })
 
       if (recordsError) throw recordsError
@@ -91,6 +98,7 @@ export default function Dashboard() {
           *,
           study_records (
             id,
+            student_id,
             date,
             study_date,
             subject,
@@ -102,6 +110,7 @@ export default function Dashboard() {
             comment
           )
         `)
+        .eq('student_id', user.id)
         .order('created_at', { ascending: false })
 
       if (feedbacksError) throw feedbacksError

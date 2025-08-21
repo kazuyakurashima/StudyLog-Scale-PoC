@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import type { StudyRecord, Feedback } from '../lib/supabase'
+import { useAuth } from '../lib/useAuth'
 
 interface HistoryRecord {
   record: StudyRecord
@@ -12,6 +13,7 @@ type SortOrder = 'asc' | 'desc'
 type SubjectFilter = 'all' | 'aptitude' | 'japanese' | 'math' | 'science' | 'social'
 
 export default function HistoryPage() {
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<'study' | 'feedback' | 'combined'>('study')
   const [historyData, setHistoryData] = useState<HistoryRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -21,27 +23,33 @@ export default function HistoryPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
   useEffect(() => {
-    loadHistoryData()
-  }, [])
+    if (user?.id) {
+      loadHistoryData()
+    }
+  }, [user?.id])
 
   const loadHistoryData = async () => {
+    if (!user?.id) return
+    
     try {
       setLoading(true)
       setError(null)
 
-      // 学習記録を取得
+      // 学習記録を取得（生徒IDでフィルタ）
       const { data: studyRecords, error: studyError } = await supabase
         .from('study_records')
         .select('*')
+        .eq('student_id', user.id)
         .order('study_date', { ascending: false })
         .order('date', { ascending: false })
 
       if (studyError) throw studyError
 
-      // フィードバックを取得
+      // フィードバックを取得（生徒IDでフィルタ）
       const { data: feedbacks, error: feedbackError } = await supabase
         .from('feedbacks')
         .select('*')
+        .eq('student_id', user.id)
         .order('created_at', { ascending: false })
 
       if (feedbackError) throw feedbackError

@@ -21,6 +21,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 // 型定義
 export interface StudyRecord {
   id: number
+  student_id?: string // 生徒ID（一時的にオプション）
   date: string // 記録をつけた日
   study_date: string // 学習内容の実施日
   subject: 'aptitude' | 'japanese' | 'math' | 'science' | 'social'
@@ -37,6 +38,7 @@ export interface StudyRecord {
 export interface Feedback {
   id: number
   record_id: number
+  student_id?: string // 生徒ID（一時的にオプション）
   sender_type: 'parent' | 'teacher'
   reaction_type?: 'clap' | 'thumbs' | 'muscle'
   message?: string
@@ -45,6 +47,7 @@ export interface Feedback {
 
 export interface Reflection {
   id: number
+  student_id?: string // 生徒ID（一時的にオプション）
   date: string
   reflection_content: string
   improvement_points?: string
@@ -56,6 +59,7 @@ export interface Reflection {
 export interface GeneratedMessage {
   id: number
   record_id: number
+  student_id?: string // 生徒ID（一時的にオプション）
   sender_type: 'parent' | 'teacher'
   messages: Array<{
     message: string

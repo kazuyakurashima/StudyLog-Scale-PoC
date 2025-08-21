@@ -3,8 +3,11 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import type { StudyRecord } from '../lib/supabase'
+import { useAuth } from '../lib/useAuth'
 
 export default function StudyRecordForm() {
+  const { user } = useAuth()
+  
   // フォームの状態管理
   const [studyDate, setStudyDate] = useState('')
   const [subject, setSubject] = useState('')
@@ -35,10 +38,13 @@ export default function StudyRecordForm() {
   }, [studyDate, subject, contentType])
 
   const checkExistingRecords = async () => {
+    if (!user?.id) return
+    
     try {
       const { data, error } = await supabase
         .from('study_records')
         .select('*')
+        .eq('student_id', user.id)
         .eq('study_date', studyDate)
         .eq('subject', subject)
         .eq('content_type', contentType)
@@ -55,6 +61,12 @@ export default function StudyRecordForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!user?.id) {
+      setMessage('ユーザー情報が取得できません')
+      setMessageType('error')
+      return
+    }
     
     if (!studyDate || !subject || !contentType || !questionsTotal || !questionsCorrect || !emotion) {
       setMessage('すべての項目を入力してください')
@@ -80,6 +92,7 @@ export default function StudyRecordForm() {
       const { error } = await supabase
         .from('study_records')
         .insert([{
+          student_id: user.id, // 生徒ID
           date: today, // 記録をつけた日（今日）
           study_date: studyDate, // 学習内容の実施日
           subject,
