@@ -99,5 +99,4 @@ export interface Database {
   }
 }
 
-// 型安全なSupabaseクライアント
-export const typedSupabase = createClient<Database>(supabaseUrl, supabaseAnonKey) 
+ 

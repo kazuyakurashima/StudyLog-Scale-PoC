@@ -38,13 +38,11 @@ export default function StudyRecordForm() {
   }, [studyDate, subject, contentType])
 
   const checkExistingRecords = async () => {
-    if (!user?.id) return
     
     try {
       const { data, error } = await supabase
         .from('study_records')
         .select('*')
-        .eq('student_id', user.id)
         .eq('study_date', studyDate)
         .eq('subject', subject)
         .eq('content_type', contentType)

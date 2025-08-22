@@ -67,31 +67,42 @@ export default function Dashboard() {
   useEffect(() => {
     if (user?.id) {
       loadDashboardData()
-      
-      // 30秒ごとにデータを更新してフィードバックの変更を反映
-      const interval = setInterval(loadDashboardData, 30000)
-      
-      return () => clearInterval(interval)
     }
   }, [user?.id])
 
-  const loadDashboardData = async () => {
+  useEffect(() => {
     if (!user?.id) return
     
+    // 30秒ごとにデータを更新してフィードバックの変更を反映
+    const interval = setInterval(loadDashboardData, 30000)
+    
+    return () => clearInterval(interval)
+  }, [user?.id])
+
+  const loadDashboardData = async () => {
+    if (!user?.id) {
+      console.log('❌ ユーザーIDが見つかりません')
+      return
+    }
+    
+    console.log('🔄 ダッシュボードデータ取得開始 - ユーザーID:', user.id)
     try {
       setLoading(true)
       setError(null)
 
-      // 1. 全ての学習記録を取得（生徒IDでフィルタ）
+      // 1. ログインユーザーの学習記録を取得
       const { data: allRecordsData, error: recordsError } = await supabase
         .from('study_records')
         .select('*')
         .eq('student_id', user.id)
         .order('date', { ascending: false })
 
+      console.log('📊 取得した学習記録:', allRecordsData?.length || 0, '件')
+      console.log('📊 取得した学習記録詳細:', allRecordsData)
+
       if (recordsError) throw recordsError
 
-      // 2. フィードバックを取得（関連する学習記録も含む）
+      // 2. ログインユーザーのフィードバックを取得（関連する学習記録も含む）
       const { data: allFeedbacks, error: feedbacksError } = await supabase
         .from('feedbacks')
         .select(`
@@ -117,11 +128,29 @@ export default function Dashboard() {
 
       // 3. 統計データを計算
       const today = new Date().toISOString().split('T')[0]
+      console.log('📅 今日の日付:', today)
+      
       const todayRecordsRaw = allRecordsData?.filter(record => {
-        // TIMESTAMP型の場合、日付部分のみを比較
-        const recordDate = new Date(record.date).toISOString().split('T')[0]
-        return recordDate === today
+        // TIMESTAMP WITH TIME ZONE型の場合、JST時間を考慮して日付部分のみを比較
+        const recordDate = new Date(record.date)
+        // JSTタイムゾーンで今日の日付を取得
+        const todayJST = new Date().toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'})
+        const recordDateJST = recordDate.toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'})
+        
+        console.log('📊 記録詳細:', {
+          recordId: record.id,
+          studentId: record.student_id,
+          rawDate: record.date,
+          recordDateJST,
+          todayJST,
+          isMatch: recordDateJST === todayJST,
+          subject: record.subject
+        })
+        return recordDateJST === todayJST
       }) || []
+
+      console.log('📅 今日の記録(フィルタ後):', todayRecordsRaw.length, '件')
+      console.log('📅 今日の記録詳細:', todayRecordsRaw)
 
       // 今日の記録を拡張形式で処理
       const todayRecords = await processTodayRecords(todayRecordsRaw, allRecordsData || [])
@@ -220,23 +249,23 @@ export default function Dashboard() {
   const calculateContinueDays = (records: StudyRecord[]): number => {
     if (!records.length) return 0
 
-    // 今日の日付を取得
-    const today = new Date().toISOString().split('T')[0]
+    // JST時間で今日の日付を取得
+    const todayJST = new Date().toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'})
     
-    // TIMESTAMP型の場合、日付部分のみを抽出
+    // TIMESTAMP WITH TIME ZONE型の場合、JST時間で日付部分のみを抽出
     const uniqueDates = Array.from(new Set(
-      records.map(r => new Date(r.date).toISOString().split('T')[0])
+      records.map(r => new Date(r.date).toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'}))
     )).sort().reverse()
 
     if (uniqueDates.length === 0) return 0
 
     // 今日から連続している日数をカウント
     let continueDays = 0
-    let checkDate = new Date(today)
+    let checkDate = new Date()
 
     // 今日から過去に向かって連続している日をチェック
     while (true) {
-      const checkDateStr = checkDate.toISOString().split('T')[0]
+      const checkDateStr = checkDate.toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'})
       
       if (uniqueDates.includes(checkDateStr)) {
         continueDays++
@@ -253,9 +282,9 @@ export default function Dashboard() {
   const calculateCumulativeDays = (records: StudyRecord[]): number => {
     if (!records.length) return 0
 
-    // TIMESTAMP型の場合、日付部分のみを抽出（全期間の学習日数をカウント）
+    // TIMESTAMP WITH TIME ZONE型の場合、JST時間で日付部分のみを抽出（全期間の学習日数をカウント）
     const uniqueDates = Array.from(new Set(
-      records.map(r => new Date(r.date).toISOString().split('T')[0])
+      records.map(r => new Date(r.date).toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'}))
     )).sort()
 
     return uniqueDates.length
@@ -292,8 +321,8 @@ export default function Dashboard() {
     // 日付ごとの主要な感情を取得（直近5日間）
     const dateGroups = new Map<string, StudyRecord[]>()
     records.forEach(record => {
-      // TIMESTAMP型の場合、日付部分のみを取得
-      const date = new Date(record.date).toISOString().split('T')[0]
+      // TIMESTAMP WITH TIME ZONE型の場合、JST時間で日付部分のみを取得
+      const date = new Date(record.date).toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'})
       if (!dateGroups.has(date)) {
         dateGroups.set(date, [])
       }
@@ -318,17 +347,18 @@ export default function Dashboard() {
   }
 
   const calculateGrowthMetrics = (records: StudyRecord[]) => {
-    const today = new Date().toISOString().split('T')[0]
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const todayJST = new Date().toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'})
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const yesterdayJST = yesterday.toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'})
     
     // 今日の成果（昨日との比較）
     const todayRecords = records.filter(r => {
-      const recordDate = new Date(r.date).toISOString().split('T')[0]
-      return recordDate === today
+      const recordDate = new Date(r.date).toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'})
+      return recordDate === todayJST
     })
     const yesterdayRecords = records.filter(r => {
-      const recordDate = new Date(r.date).toISOString().split('T')[0]
-      return recordDate === yesterday
+      const recordDate = new Date(r.date).toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'})
+      return recordDate === yesterdayJST
     })
     
     const todayAccuracy = todayRecords.length > 0 ? 
