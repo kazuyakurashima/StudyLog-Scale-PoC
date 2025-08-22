@@ -1,23 +1,55 @@
-/* 調和的なデザインシステム */
+/* プロフェッショナル学習管理システム - 統合デザインシステム */
 
 :root {
-  /* カラーパレット */
-  --color-primary: rgb(71 85 105); /* slate-600 */
-  --color-primary-light: rgb(148 163 184); /* slate-400 */
-  --color-surface: rgb(255 255 255);
-  --color-surface-secondary: rgb(250 250 249); /* stone-50 */
-  --color-surface-tertiary: rgb(245 245 244); /* stone-100 */
-  --color-text-primary: rgb(68 64 60); /* stone-700 */
-  --color-text-secondary: rgb(120 113 108); /* stone-500 */
-  --color-text-tertiary: rgb(168 162 158); /* stone-400 */
-  --color-accent-success: rgb(16 185 129); /* emerald-500 */
-  --color-accent-warning: rgb(245 158 11); /* amber-500 */
-  --color-accent-error: rgb(239 68 68); /* red-500 */
-  --color-border: rgb(231 229 228); /* stone-200 */
-  --color-border-light: rgb(245 245 244); /* stone-100 */
+  /* 主要カラーパレット - 調和されたブルー系階層 */
+  --color-primary-900: rgb(30 58 138); /* blue-900 - 最深部 */
+  --color-primary-800: rgb(30 64 175); /* blue-800 - メインテキスト */
+  --color-primary-700: rgb(29 78 216); /* blue-700 - アクティブ状態 */
+  --color-primary-600: rgb(37 99 235); /* blue-600 - セカンダリテキスト */
+  --color-primary-500: rgb(59 130 246); /* blue-500 - メインアクション */
+  --color-primary-400: rgb(96 165 250); /* blue-400 - ホバー状態 */
+  --color-primary-300: rgb(147 197 253); /* blue-300 - ボーダー */
+  --color-primary-200: rgb(191 219 254); /* blue-200 - 軽いボーダー */
+  --color-primary-100: rgb(219 234 254); /* blue-100 - 背景アクセント */
+  --color-primary-50: rgb(239 246 255); /* blue-50 - 最軽背景 */
   
-  /* タイポグラフィ */
+  /* ニュートラルカラー - 読みやすさ重視 */
+  --color-neutral-900: rgb(15 23 42); /* slate-900 */
+  --color-neutral-800: rgb(30 41 59); /* slate-800 */
+  --color-neutral-700: rgb(51 65 85); /* slate-700 */
+  --color-neutral-600: rgb(71 85 105); /* slate-600 */
+  --color-neutral-500: rgb(100 116 139); /* slate-500 */
+  --color-neutral-400: rgb(148 163 184); /* slate-400 */
+  --color-neutral-300: rgb(203 213 225); /* slate-300 */
+  --color-neutral-200: rgb(226 232 240); /* slate-200 */
+  --color-neutral-100: rgb(241 245 249); /* slate-100 */
+  --color-neutral-50: rgb(248 250 252); /* slate-50 */
+  
+  /* セマンティックカラー - 状態表現 */
+  --color-success-600: rgb(22 163 74); /* green-600 */
+  --color-success-500: rgb(34 197 94); /* green-500 */
+  --color-success-100: rgb(220 252 231); /* green-100 */
+  --color-success-50: rgb(240 253 244); /* green-50 */
+  
+  --color-warning-600: rgb(217 119 6); /* amber-600 */
+  --color-warning-500: rgb(245 158 11); /* amber-500 */
+  --color-warning-100: rgb(254 243 199); /* amber-100 */
+  --color-warning-50: rgb(255 251 235); /* amber-50 */
+  
+  --color-error-600: rgb(220 38 38); /* red-600 */
+  --color-error-500: rgb(239 68 68); /* red-500 */
+  --color-error-100: rgb(254 226 226); /* red-100 */
+  --color-error-50: rgb(254 242 242); /* red-50 */
+  
+  /* アクセントカラー - 特別な強調 */
+  --color-accent-purple: rgb(168 85 247); /* purple-500 */
+  --color-accent-orange: rgb(251 146 60); /* orange-400 */
+  
+  /* タイポグラフィシステム - 階層とリーダビリティ重視 */
   --font-family-primary: 'Inter', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+  --font-family-display: 'Inter', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  
+  /* タイポグラフィスケール - モジュラースケール1.25 */
   --font-size-xs: 0.75rem; /* 12px */
   --font-size-sm: 0.875rem; /* 14px */
   --font-size-base: 1rem; /* 16px */
@@ -26,225 +58,664 @@
   --font-size-2xl: 1.5rem; /* 24px */
   --font-size-3xl: 1.875rem; /* 30px */
   --font-size-4xl: 2.25rem; /* 36px */
+  --font-size-5xl: 3rem; /* 48px */
   
-  /* スペーシング */
-  --spacing-xs: 0.25rem; /* 4px */
-  --spacing-sm: 0.5rem; /* 8px */
-  --spacing-md: 0.75rem; /* 12px */
-  --spacing-lg: 1rem; /* 16px */
-  --spacing-xl: 1.5rem; /* 24px */
-  --spacing-2xl: 2rem; /* 32px */
-  --spacing-3xl: 3rem; /* 48px */
+  /* フォントウェイト */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
   
-  /* 角丸とシャドウ */
-  --radius-sm: 0.5rem; /* 8px */
+  /* ラインハイト - 読みやすさ最適化 */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+  --line-height-loose: 2;
+  
+  /* スペーシングシステム - 8px基準 */
+  --spacing-px: 1px;
+  --spacing-0: 0;
+  --spacing-1: 0.25rem; /* 4px */
+  --spacing-2: 0.5rem; /* 8px */
+  --spacing-3: 0.75rem; /* 12px */
+  --spacing-4: 1rem; /* 16px */
+  --spacing-5: 1.25rem; /* 20px */
+  --spacing-6: 1.5rem; /* 24px */
+  --spacing-8: 2rem; /* 32px */
+  --spacing-10: 2.5rem; /* 40px */
+  --spacing-12: 3rem; /* 48px */
+  --spacing-16: 4rem; /* 64px */
+  --spacing-20: 5rem; /* 80px */
+  
+  /* ボーダー半径 - 一貫性重視 */
+  --radius-none: 0;
+  --radius-sm: 0.25rem; /* 4px */
+  --radius-base: 0.5rem; /* 8px */
   --radius-md: 0.75rem; /* 12px */
   --radius-lg: 1rem; /* 16px */
   --radius-xl: 1.5rem; /* 24px */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --radius-2xl: 2rem; /* 32px */
+  --radius-full: 9999px;
+  
+  /* エレベーション（影）システム */
+  --shadow-none: none;
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+  
+  /* アニメーション - スムーズなインタラクション */
+  --transition-fast: 150ms ease-out;
+  --transition-base: 250ms ease-out;
+  --transition-slow: 350ms ease-out;
+  --transition-bounce: 250ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  
+  /* Z-index レイヤリング */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
 }
 
-/* 基本要素の統一 */
+/* ベースタイポグラフィとリセット */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   font-family: var(--font-family-primary);
   font-size: var(--font-size-base);
-  line-height: 1.5;
-  color: var(--color-text-primary);
-  background: linear-gradient(135deg, var(--color-surface-secondary) 0%, var(--color-surface-tertiary) 100%);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+  color: var(--color-neutral-800);
+  background: linear-gradient(135deg, var(--color-primary-50) 0%, rgba(255, 255, 255, 0.8) 50%, var(--color-primary-50) 100%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ヘッダーの統一 */
-.harmonious-header-1 {
+/* プロフェッショナルタイポグラフィ階層 */
+.pro-display-1 {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-5xl);
+  font-weight: var(--font-weight-extrabold);
+  line-height: var(--line-height-tight);
+  color: var(--color-primary-900);
+  letter-spacing: -0.025em;
+  margin-bottom: var(--spacing-6);
+}
+
+.pro-heading-1 {
+  font-family: var(--font-family-display);
   font-size: var(--font-size-4xl);
-  font-weight: 800;
-  line-height: 1.1;
-  color: var(--color-text-primary);
-  margin-bottom: var(--spacing-lg);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  color: var(--color-primary-800);
+  letter-spacing: -0.015em;
+  margin-bottom: var(--spacing-5);
+}
+
+.pro-heading-2 {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-primary-800);
+  margin-bottom: var(--spacing-4);
+}
+
+.pro-heading-3 {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-normal);
+  color: var(--color-primary-700);
+  margin-bottom: var(--spacing-3);
+}
+
+.pro-heading-4 {
+  font-family: var(--font-family-primary);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-normal);
+  color: var(--color-primary-700);
+  margin-bottom: var(--spacing-2);
+}
+
+.pro-subheading {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-primary-600);
+  margin-bottom: var(--spacing-4);
+}
+
+.pro-body-large {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-neutral-700);
+}
+
+.pro-body {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+  color: var(--color-neutral-700);
+}
+
+.pro-body-small {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+  color: var(--color-neutral-600);
+}
+
+.pro-caption {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-normal);
+  color: var(--color-neutral-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* 互換性のため既存クラスも保持 */
+.harmonious-header-1 {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  color: var(--color-primary-800);
+  letter-spacing: -0.015em;
+  margin-bottom: var(--spacing-5);
 }
 
 .harmonious-header-2 {
+  font-family: var(--font-family-display);
   font-size: var(--font-size-3xl);
-  font-weight: 700;
-  line-height: 1.2;
-  color: var(--color-text-primary);
-  margin-bottom: var(--spacing-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-primary-800);
+  margin-bottom: var(--spacing-4);
 }
 
 .harmonious-header-3 {
+  font-family: var(--font-family-display);
   font-size: var(--font-size-2xl);
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--color-text-primary);
-  margin-bottom: var(--spacing-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-normal);
+  color: var(--color-primary-700);
+  margin-bottom: var(--spacing-3);
 }
 
 .harmonious-header-4 {
+  font-family: var(--font-family-primary);
   font-size: var(--font-size-xl);
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-normal);
+  color: var(--color-primary-700);
+  margin-bottom: var(--spacing-2);
 }
 
-/* テキストサイズの統一 */
 .harmonious-text-lg {
   font-size: var(--font-size-lg);
-  line-height: 1.5;
-  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-primary-600);
+  margin-bottom: var(--spacing-4);
 }
 
 .harmonious-text-base {
   font-size: var(--font-size-base);
-  line-height: 1.5;
-  color: var(--color-text-primary);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+  color: var(--color-neutral-700);
 }
 
 .harmonious-text-sm {
   font-size: var(--font-size-sm);
-  line-height: 1.4;
-  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+  color: var(--color-neutral-600);
 }
 
 .harmonious-text-xs {
   font-size: var(--font-size-xs);
-  line-height: 1.3;
-  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-normal);
+  color: var(--color-neutral-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-/* カードの統一 */
-.harmonious-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-2xl);
+/* プロフェッショナルカードシステム */
+.pro-card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--color-primary-200);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-6);
   box-shadow: var(--shadow-sm);
-  transition: all 0.2s ease;
+  transition: var(--transition-base);
+  backdrop-filter: blur(10px);
+}
+
+.pro-card:hover {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary-300);
+  transform: translateY(-2px);
+}
+
+.pro-card-compact {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--color-primary-200);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4);
+  box-shadow: var(--shadow-xs);
+  transition: var(--transition-fast);
+}
+
+.pro-card-highlight {
+  background: linear-gradient(135deg, var(--color-primary-50) 0%, rgba(255, 255, 255, 0.9) 100%);
+  border: 2px solid var(--color-primary-300);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-8);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+.pro-card-highlight::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-primary-500), var(--color-accent-purple));
+}
+
+/* プロフェッショナルボタンシステム */
+.pro-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  font-family: var(--font-family-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  border-radius: var(--radius-lg);
+  transition: var(--transition-base);
+  cursor: pointer;
+  user-select: none;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.pro-button:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+.pro-button-primary {
+  background: linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-500) 100%);
+  color: white;
+  border: none;
+  padding: var(--spacing-3) var(--spacing-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.pro-button-primary:hover {
+  background: linear-gradient(135deg, var(--color-primary-700) 0%, var(--color-primary-600) 100%);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.pro-button-primary:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.pro-button-secondary {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-primary-700);
+  border: 1px solid var(--color-primary-300);
+  padding: var(--spacing-3) var(--spacing-6);
+  backdrop-filter: blur(10px);
+}
+
+.pro-button-secondary:hover {
+  background: var(--color-primary-50);
+  border-color: var(--color-primary-400);
+  color: var(--color-primary-800);
+}
+
+.pro-button-ghost {
+  background: transparent;
+  color: var(--color-primary-600);
+  border: 1px solid transparent;
+  padding: var(--spacing-3) var(--spacing-6);
+}
+
+.pro-button-ghost:hover {
+  background: var(--color-primary-50);
+  border-color: var(--color-primary-200);
+  color: var(--color-primary-700);
+}
+
+/* プロフェッショナルバッジシステム */
+.pro-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-1) var(--spacing-3);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid;
+}
+
+.pro-badge-student {
+  background: var(--color-primary-50);
+  color: var(--color-primary-800);
+  border-color: var(--color-primary-200);
+}
+
+.pro-badge-parent {
+  background: var(--color-error-50);
+  color: var(--color-error-700);
+  border-color: var(--color-error-200);
+}
+
+.pro-badge-teacher {
+  background: var(--color-success-50);
+  color: var(--color-success-700);
+  border-color: var(--color-success-200);
+}
+
+.pro-badge-status {
+  background: var(--color-warning-50);
+  color: var(--color-warning-700);
+  border-color: var(--color-warning-200);
+}
+
+/* プロフェッショナルメトリクスカード */
+.pro-metrics-card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--color-primary-200);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-6);
+  text-align: center;
+  transition: var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.pro-metrics-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-primary-400), var(--color-primary-600));
+}
+
+.pro-metrics-card:hover {
+  box-shadow: var(--shadow-xl);
+  transform: translateY(-4px);
+  border-color: var(--color-primary-300);
+}
+
+.pro-metrics-value {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-primary-700);
+  line-height: var(--line-height-tight);
+  margin-bottom: var(--spacing-2);
+}
+
+.pro-metrics-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-neutral-600);
+  line-height: var(--line-height-normal);
+}
+
+/* 互換性のため既存クラスを新システムにマッピング */
+.harmonious-card { 
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--color-primary-200);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-6);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-base);
+  backdrop-filter: blur(10px);
 }
 
 .harmonious-card:hover {
-  box-shadow: var(--shadow-md);
-  border-color: var(--color-primary-light);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary-300);
+  transform: translateY(-2px);
 }
 
-.harmonious-card-compact {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-lg);
-  box-shadow: var(--shadow-sm);
+.harmonious-card-compact { 
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--color-primary-200);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4);
+  box-shadow: var(--shadow-xs);
+  transition: var(--transition-fast);
 }
 
-/* ボタンの統一 */
 .harmonious-button-primary {
-  background: var(--color-primary);
-  color: var(--color-surface);
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  font-family: var(--font-family-primary);
   font-size: var(--font-size-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
-  border-radius: var(--radius-md);
-  border: none;
-  box-shadow: var(--shadow-sm);
-  transition: all 0.2s ease;
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  border-radius: var(--radius-lg);
+  transition: var(--transition-base);
   cursor: pointer;
+  background: linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-500) 100%);
+  color: white;
+  border: none;
+  padding: var(--spacing-3) var(--spacing-6);
+  box-shadow: var(--shadow-sm);
 }
 
 .harmonious-button-primary:hover {
-  background: var(--color-text-primary);
+  background: linear-gradient(135deg, var(--color-primary-700) 0%, var(--color-primary-600) 100%);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
 .harmonious-button-secondary {
-  background: var(--color-surface-tertiary);
-  color: var(--color-text-primary);
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  font-family: var(--font-family-primary);
   font-size: var(--font-size-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  transition: all 0.2s ease;
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  border-radius: var(--radius-lg);
+  transition: var(--transition-base);
   cursor: pointer;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-primary-700);
+  border: 1px solid var(--color-primary-300);
+  padding: var(--spacing-3) var(--spacing-6);
+  backdrop-filter: blur(10px);
 }
 
 .harmonious-button-secondary:hover {
-  background: var(--color-surface-secondary);
-  border-color: var(--color-primary-light);
+  background: var(--color-primary-50);
+  border-color: var(--color-primary-400);
+  color: var(--color-primary-800);
 }
 
-/* バッジの統一 */
 .harmonious-badge {
-  display: inline-block;
-  padding: var(--spacing-xs) var(--spacing-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-1) var(--spacing-3);
   font-size: var(--font-size-xs);
-  font-weight: 500;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border-light);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid;
 }
 
 .harmonious-badge-student {
-  background: rgb(241 245 249); /* slate-50 */
-  color: var(--color-text-primary);
+  background: var(--color-primary-50);
+  color: var(--color-primary-800);
+  border-color: var(--color-primary-200);
 }
 
 .harmonious-badge-parent {
-  background: rgb(255 241 242); /* rose-50 */
-  color: rgb(190 18 60); /* rose-700 */
+  background: var(--color-error-50);
+  color: var(--color-error-700);
+  border-color: var(--color-error-200);
 }
 
 .harmonious-badge-teacher {
-  background: rgb(236 253 245); /* emerald-50 */
-  color: rgb(4 120 87); /* emerald-700 */
+  background: var(--color-success-50);
+  color: var(--color-success-700);
+  border-color: var(--color-success-200);
 }
 
-/* グラデーションアクセント */
 .harmonious-gradient-accent {
-  background: linear-gradient(135deg, var(--color-accent-warning) 0%, rgb(251 146 60) 100%); /* amber-500 to orange-400 */
+  background: linear-gradient(135deg, var(--color-warning-500) 0%, var(--color-accent-orange) 100%);
   color: white;
-  border-radius: var(--radius-xl);
-  padding: var(--spacing-3xl);
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-8);
+  box-shadow: var(--shadow-xl);
+  position: relative;
+  overflow: hidden;
 }
 
-/* メトリクスカードの統一 */
+.harmonious-gradient-accent::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+}
+
 .harmonious-metrics-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-xl);
-  box-shadow: var(--shadow-sm);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--color-primary-200);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-6);
   text-align: center;
-  transition: all 0.2s ease;
+  transition: var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.harmonious-metrics-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-primary-400), var(--color-primary-600));
 }
 
 .harmonious-metrics-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-xl);
+  transform: translateY(-4px);
+  border-color: var(--color-primary-300);
 }
 
 .harmonious-metrics-value {
   font-size: var(--font-size-3xl);
-  font-weight: 700;
-  color: var(--color-primary);
-  margin-bottom: var(--spacing-xs);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-primary-700);
+  line-height: var(--line-height-tight);
+  margin-bottom: var(--spacing-2);
 }
 
 .harmonious-metrics-label {
   font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-neutral-600);
+  line-height: var(--line-height-normal);
 }
 
 /* レスポンシブ調整 */
 @media (max-width: 768px) {
   :root {
+    --font-size-5xl: 2.5rem; /* 40px */
     --font-size-4xl: 2rem; /* 32px */
     --font-size-3xl: 1.5rem; /* 24px */
-    --spacing-2xl: 1.5rem; /* 24px */
-    --spacing-3xl: 2rem; /* 32px */
+    --spacing-8: 1.5rem; /* 24px */
+    --spacing-12: 2rem; /* 32px */
   }
   
-  .harmonious-card {
-    padding: var(--spacing-lg);
+  .pro-card, .harmonious-card {
+    padding: var(--spacing-4);
   }
+  
+  .pro-card-highlight {
+    padding: var(--spacing-6);
+  }
+  
+  .harmonious-gradient-accent {
+    padding: var(--spacing-6);
+  }
+}
+
+/* フォーカス管理とアクセシビリティ */
+.pro-button:focus-visible,
+.harmonious-button-primary:focus-visible,
+.harmonious-button-secondary:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+/* ローディング状態 */
+.pro-loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.pro-loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
 }
