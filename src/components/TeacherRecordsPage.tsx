@@ -82,17 +82,24 @@ export default function TeacherRecordsPage() {
       return true
     })
     .sort((a, b) => {
-      let aValue: any = a[sortField]
-      let bValue: any = b[sortField]
+      let aValue: string | number
+      let bValue: string | number
       
       if (sortField === 'accuracy') {
         aValue = (a.questions_correct / a.questions_total) * 100
         bValue = (b.questions_correct / b.questions_total) * 100
-      }
-      
-      if (sortField === 'date') {
+      } else if (sortField === 'date') {
         aValue = new Date(a.date).getTime()
         bValue = new Date(b.date).getTime()
+      } else if (sortField === 'student_name') {
+        aValue = a.student_name
+        bValue = b.student_name
+      } else if (sortField === 'subject') {
+        aValue = a.subject
+        bValue = b.subject
+      } else {
+        aValue = 0
+        bValue = 0
       }
       
       if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
