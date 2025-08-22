@@ -3,6 +3,10 @@ import { User, UserRole } from '../lib/auth';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { supabase } from '../lib/supabase';
+import PasswordSetupModal from './PasswordSetupModal';
+import PasswordInputModal from './PasswordInputModal';
+import { isPasswordSet, isAuthenticated } from '../lib/roleAuth';
+import type { RoleType } from '../lib/roleAuth';
 
 interface RoleSelectPageProps {
   user: User;
@@ -53,6 +57,9 @@ export const RoleSelectPage: React.FC<RoleSelectPageProps> = ({ user, onRoleSele
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isFirstTimeUser, setIsFirstTimeUser] = useState<boolean | null>(null);
+  const [showPasswordSetup, setShowPasswordSetup] = useState(false);
+  const [showPasswordInput, setShowPasswordInput] = useState(false);
+  const [pendingRoleType, setPendingRoleType] = useState<RoleType | null>(null);
 
   // 初回ユーザーかどうかをチェック
   useEffect(() => {
@@ -81,12 +88,57 @@ export const RoleSelectPage: React.FC<RoleSelectPageProps> = ({ user, onRoleSele
   }, [user.id]);
 
   const handleRoleSelect = async (role: UserRole) => {
-    setSelectedRole(role);
-    setIsTransitioning(true);
-    
-    // スムーズなトランジションのための待機
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    onRoleSelect(role);
+    // 生徒モードの場合はパスワード認証なしで直接進む
+    if (role === 'student') {
+      setSelectedRole(role);
+      setIsTransitioning(true);
+      
+      // スムーズなトランジションのための待機
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      onRoleSelect(role);
+      return;
+    }
+
+    // 保護者・指導者モードの場合はパスワード認証が必要
+    const roleType = role as RoleType;
+    setPendingRoleType(roleType);
+
+    // 毎回パスワード認証を要求するため、セッション認証チェックをスキップ
+
+    // パスワードが設定済みかチェック
+    if (isPasswordSet(user.id, roleType)) {
+      // パスワード入力画面を表示
+      setShowPasswordInput(true);
+    } else {
+      // パスワード設定画面を表示
+      setShowPasswordSetup(true);
+    }
+  };
+
+  const handlePasswordSetupSuccess = async () => {
+    setShowPasswordSetup(false);
+    if (pendingRoleType) {
+      setSelectedRole(pendingRoleType);
+      setIsTransitioning(true);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      onRoleSelect(pendingRoleType);
+    }
+  };
+
+  const handlePasswordInputSuccess = async () => {
+    setShowPasswordInput(false);
+    if (pendingRoleType) {
+      setSelectedRole(pendingRoleType);
+      setIsTransitioning(true);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      onRoleSelect(pendingRoleType);
+    }
+  };
+
+  const handlePasswordCancel = () => {
+    setShowPasswordSetup(false);
+    setShowPasswordInput(false);
+    setPendingRoleType(null);
   };
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center p-4 relative overflow-hidden">
@@ -208,6 +260,25 @@ export const RoleSelectPage: React.FC<RoleSelectPageProps> = ({ user, onRoleSele
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
         <p className="text-slate-400 text-sm font-medium">🎓 あなたにぴったりのモードで学習しよう</p>
       </div>
+
+      {/* Password Modals */}
+      {showPasswordSetup && pendingRoleType && (
+        <PasswordSetupModal
+          userId={user.id}
+          roleType={pendingRoleType}
+          onSuccess={handlePasswordSetupSuccess}
+          onCancel={handlePasswordCancel}
+        />
+      )}
+
+      {showPasswordInput && pendingRoleType && (
+        <PasswordInputModal
+          userId={user.id}
+          roleType={pendingRoleType}
+          onSuccess={handlePasswordInputSuccess}
+          onCancel={handlePasswordCancel}
+        />
+      )}
     </div>
   );
 };
