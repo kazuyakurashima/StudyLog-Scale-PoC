@@ -191,7 +191,7 @@ export default function HistoryPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
               <div className="bg-blue-50 p-3 rounded-lg">
                 <div className="text-sm text-blue-600 font-medium">正答率</div>
                 <div className="text-xl font-bold text-blue-700">
@@ -208,12 +208,6 @@ export default function HistoryPage() {
                 <div className="text-sm text-purple-600 font-medium">感想</div>
                 <div className="text-lg text-purple-700">
                   {getEmotionLabel(item.record.emotion)}
-                </div>
-              </div>
-              <div className="bg-orange-50 p-3 rounded-lg">
-                <div className="text-sm text-orange-600 font-medium">応援数</div>
-                <div className="text-xl font-bold text-orange-700">
-                  {item.feedbacks.length}件
                 </div>
               </div>
             </div>

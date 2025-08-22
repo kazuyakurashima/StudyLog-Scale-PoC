@@ -4,6 +4,7 @@ import { supabase, type GeneratedMessage } from '../lib/supabase'
 
 interface PersonalizedFeedbackProps {
   recordId: number
+  studentId: string
   studyData: StudyData
   senderType: SenderType
   onSendFeedback: (recordId: number, message: string, emoji: string) => Promise<void>
@@ -14,6 +15,7 @@ interface PersonalizedFeedbackProps {
 
 export default function PersonalizedFeedback({
   recordId,
+  studentId,
   studyData,
   senderType,
   onSendFeedback,
@@ -130,6 +132,7 @@ export default function PersonalizedFeedback({
       
       const upsertData = {
         record_id: recordId,
+        student_id: studentId,
         sender_type: senderType,
         messages: messages,
         generated_at: new Date().toISOString()

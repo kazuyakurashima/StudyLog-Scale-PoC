@@ -5,6 +5,7 @@ import PersonalizedFeedback from './PersonalizedFeedback'
 import type { StudyData, StudyHistory, SenderType } from '../lib/openai'
 import { USERS } from '../lib/auth'
 import { formatDateTimeToJST } from '../lib/utils'
+import { useAuth } from '../lib/useAuth'
 
 interface FeedbackPageProps {
   userRole: 'parent' | 'teacher'
@@ -22,6 +23,7 @@ interface ExtendedStudyRecord extends StudyRecord {
 }
 
 export default function FeedbackPage({ userRole }: FeedbackPageProps) {
+  const { user } = useAuth()
   const [selectedStudentId, setSelectedStudentId] = useState<string>('')
   const [studyRecords, setStudyRecords] = useState<ExtendedStudyRecord[]>([])
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
@@ -31,6 +33,13 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
   const [sending, setSending] = useState(false)
   const [reactionSent, setReactionSent] = useState<{recordId: number, type: string} | null>(null)
 
+  useEffect(() => {
+    if (user?.id) {
+      setSelectedStudentId(user.id)
+      loadData()
+    }
+  }, [user?.id])
+  
   useEffect(() => {
     if (selectedStudentId) {
       loadData()
@@ -43,14 +52,15 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
     try {
       setLoading(true)
 
-      // 最近の学習記録を取得（student_idフィールドがないため、すべての記録を取得）
+      // 最近の学習記録を取得
       const fourteenDaysAgo = new Date()
       fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
-      const dateLimit = fourteenDaysAgo.toISOString().split('T')[0]
+      const dateLimit = fourteenDaysAgo.toISOString() // TIMESTAMP型に対応
 
       const { data: records, error: recordsError } = await supabase
         .from('study_records')
         .select('*')
+        .eq('student_id', selectedStudentId)
         .gte('date', dateLimit)
         .order('date', { ascending: false })
 
@@ -59,7 +69,7 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
         throw recordsError
       }
 
-      // フィードバックを取得（student_idフィールドがないため、すべてのフィードバックを取得）
+      // フィードバックを取得
       const { data: allFeedbacks, error: feedbacksError } = await supabase
         .from('feedbacks')
         .select('*')
@@ -96,7 +106,7 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
           r.study_date === record.study_date && 
           r.subject === record.subject && 
           r.content_type === record.content_type &&
-          r.date <= record.date
+          new Date(r.date) <= new Date(record.date) // TIMESTAMP型の比較
         )
         .sort((a, b) => a.attempt_number - b.attempt_number)
         .map(r => ({
@@ -202,14 +212,13 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
         .from('feedbacks')
         .insert([{
           record_id: recordId,
+          student_id: selectedStudentId,
           sender_type: userRole,
           reaction_type: null,
           message: message
         }])
 
       if (error) throw error
-
-      console.log('✅ 個別最適化メッセージ送信成功')
       
       // 送信状態をすぐにリセット
       setSending(false)
@@ -223,6 +232,7 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
         const newFeedback: Feedback = {
           id: Date.now(),
           record_id: recordId,
+          student_id: selectedStudentId,
           sender_type: userRole,
           reaction_type: undefined,
           message: message,
@@ -247,6 +257,7 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
         .from('feedbacks')
         .insert([{
           record_id: recordId,
+          student_id: selectedStudentId,
           sender_type: userRole,
           reaction_type: reactionType,
           message: null
@@ -270,6 +281,7 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
          const newFeedback: Feedback = {
            id: Date.now(), // 一時的なID
            record_id: recordId,
+           student_id: selectedStudentId,
            sender_type: userRole,
            reaction_type: reactionType,
            message: undefined,
@@ -299,6 +311,7 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
         .from('feedbacks')
         .insert([{
           record_id: recordId,
+          student_id: selectedStudentId,
           sender_type: userRole,
           reaction_type: null,
           message: commentText.trim()
@@ -308,21 +321,33 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
 
       console.log('✅ コメント送信成功')
       
-      // 画面遷移を避けるため、loadData()は呼ばない
-      // 代わりに、フィードバックを直接feedbacks配列に追加
-      const newFeedback: Feedback = {
-        id: Date.now(), // 一時的なID
-        record_id: recordId,
-        sender_type: userRole,
-        reaction_type: undefined,
-        message: commentText.trim(),
-        created_at: new Date().toISOString()
-      }
-      setFeedbacks(prev => [newFeedback, ...prev])
+      // メッセージを保存（フォームリセット前に）
+      const messageText = commentText.trim()
+      
+      // 送信状態をすぐにリセット
+      setSending(false)
+      
+      // 視覚フィードバックを表示
+      setReactionSent({ recordId, type: 'message' })
       
       // フォームをリセット
       setCommentText('')
       setSelectedRecord(null)
+      
+      // 2秒後にフィードバックを非表示にし、フィードバックを配列に追加
+      setTimeout(() => {
+        setReactionSent(null)
+        const newFeedback: Feedback = {
+          id: Date.now(), // 一時的なID
+          record_id: recordId,
+          student_id: selectedStudentId,
+          sender_type: userRole,
+          reaction_type: undefined,
+          message: messageText,
+          created_at: new Date().toISOString()
+        }
+        setFeedbacks(prev => [newFeedback, ...prev])
+      }, 2000)
 
     } catch (error) {
       console.error('❌ コメント送信エラー:', error)
@@ -402,30 +427,24 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
         </p>
       </div>
 
-      {/* 生徒選択 */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border">
-        <label className="block text-lg font-bold text-slate-700 mb-3">
-          👧 生徒を選択してください
-        </label>
-        <select
-          value={selectedStudentId}
-          onChange={(e) => setSelectedStudentId(e.target.value)}
-          className="w-full p-4 text-lg border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-        >
-          <option value="">生徒を選択...</option>
-          {Object.values(USERS).map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* 生徒情報表示 */}
+      {user && (
+        <div className="bg-white p-6 rounded-2xl shadow-sm border">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">👧</span>
+            <div>
+              <h3 className="text-lg font-bold text-slate-700">{user.name}さんの学習記録</h3>
+              <p className="text-sm text-slate-500">ID: {user.id}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 学習記録一覧 */}
       <div className="space-y-6">
-        {!selectedStudentId ? (
+        {!user ? (
           <div className="text-center p-8 bg-blue-50 rounded-2xl border border-blue-200">
-            <p className="text-blue-700 text-lg">👆 上で生徒を選択してください</p>
+            <p className="text-blue-700 text-lg">📝 ログインしてください</p>
           </div>
         ) : studyRecords.length > 0 ? (
           studyRecords.map((record) => {
@@ -511,6 +530,7 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
                 <div className="mb-6">
                   <PersonalizedFeedback
                     recordId={record.id}
+                    studentId={selectedStudentId}
                     studyData={{
                       subject: record.subject,
                       questionsTotal: record.questions_total,
@@ -530,7 +550,12 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
                 {/* コメント入力 */}
                 <div className="mb-6">
                   <h4 className="text-lg font-bold mb-3">メッセージを送る:</h4>
-                  {selectedRecord?.id === record.id ? (
+                  {reactionSent?.recordId === record.id && reactionSent?.type === 'message' ? (
+                    <div className="bg-green-100 border border-green-300 text-green-800 px-6 py-4 rounded-xl flex items-center justify-center gap-3 animate-pulse">
+                      <span className="text-3xl">💬</span>
+                      <span className="font-bold text-lg">メッセージを送信しました！</span>
+                    </div>
+                  ) : selectedRecord?.id === record.id ? (
                     <div className="space-y-3">
                       <textarea
                         value={commentText}

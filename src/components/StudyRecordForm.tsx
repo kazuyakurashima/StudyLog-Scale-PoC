@@ -116,9 +116,6 @@ export default function StudyRecordForm() {
       setEmotion('')
       setComment('')
       
-      // 履歴を更新
-      await checkExistingRecords()
-      
     } catch (error) {
       console.error('❌ 保存エラー:', error)
       setMessage('保存に失敗しました。もう一度お試しください。')
