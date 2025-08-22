@@ -146,10 +146,10 @@ export default function StudyRecordForm() {
     <div className="max-w-2xl mx-auto p-6">
       {/* ヘッダー */}
       <div className="text-center mb-8">
-        <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+        <h1 className="harmonious-header-1">
           📝 学習記録
         </h1>
-        <p className="text-slate-600 text-lg">今日のがんばりを記録しよう！</p>
+        <p className="harmonious-text-lg">今日のがんばりを記録しよう！</p>
       </div>
 
       {/* 履歴表示 */}

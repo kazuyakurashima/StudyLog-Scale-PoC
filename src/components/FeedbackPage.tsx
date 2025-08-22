@@ -419,10 +419,10 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
     <div className="p-6 max-w-5xl mx-auto space-y-8">
       {/* ヘッダー */}
       <div className="text-center">
-        <h1 className="text-4xl font-black bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 bg-clip-text text-transparent mb-2">
+        <h1 className="harmonious-header-1">
           💌 応援・フィードバック
         </h1>
-        <p className="text-slate-600 text-lg">
+        <p className="harmonious-text-lg">
           {getRoleLabel(userRole)}として、がんばりを応援しよう！
         </p>
       </div>

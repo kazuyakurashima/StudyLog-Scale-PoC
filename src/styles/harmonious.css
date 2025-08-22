@@ -1,0 +1,250 @@
+/* 調和的なデザインシステム */
+
+:root {
+  /* カラーパレット */
+  --color-primary: rgb(71 85 105); /* slate-600 */
+  --color-primary-light: rgb(148 163 184); /* slate-400 */
+  --color-surface: rgb(255 255 255);
+  --color-surface-secondary: rgb(250 250 249); /* stone-50 */
+  --color-surface-tertiary: rgb(245 245 244); /* stone-100 */
+  --color-text-primary: rgb(68 64 60); /* stone-700 */
+  --color-text-secondary: rgb(120 113 108); /* stone-500 */
+  --color-text-tertiary: rgb(168 162 158); /* stone-400 */
+  --color-accent-success: rgb(16 185 129); /* emerald-500 */
+  --color-accent-warning: rgb(245 158 11); /* amber-500 */
+  --color-accent-error: rgb(239 68 68); /* red-500 */
+  --color-border: rgb(231 229 228); /* stone-200 */
+  --color-border-light: rgb(245 245 244); /* stone-100 */
+  
+  /* タイポグラフィ */
+  --font-family-primary: 'Inter', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+  --font-size-xs: 0.75rem; /* 12px */
+  --font-size-sm: 0.875rem; /* 14px */
+  --font-size-base: 1rem; /* 16px */
+  --font-size-lg: 1.125rem; /* 18px */
+  --font-size-xl: 1.25rem; /* 20px */
+  --font-size-2xl: 1.5rem; /* 24px */
+  --font-size-3xl: 1.875rem; /* 30px */
+  --font-size-4xl: 2.25rem; /* 36px */
+  
+  /* スペーシング */
+  --spacing-xs: 0.25rem; /* 4px */
+  --spacing-sm: 0.5rem; /* 8px */
+  --spacing-md: 0.75rem; /* 12px */
+  --spacing-lg: 1rem; /* 16px */
+  --spacing-xl: 1.5rem; /* 24px */
+  --spacing-2xl: 2rem; /* 32px */
+  --spacing-3xl: 3rem; /* 48px */
+  
+  /* 角丸とシャドウ */
+  --radius-sm: 0.5rem; /* 8px */
+  --radius-md: 0.75rem; /* 12px */
+  --radius-lg: 1rem; /* 16px */
+  --radius-xl: 1.5rem; /* 24px */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* 基本要素の統一 */
+body {
+  font-family: var(--font-family-primary);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  background: linear-gradient(135deg, var(--color-surface-secondary) 0%, var(--color-surface-tertiary) 100%);
+}
+
+/* ヘッダーの統一 */
+.harmonious-header-1 {
+  font-size: var(--font-size-4xl);
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.harmonious-header-2 {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.harmonious-header-3 {
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.harmonious-header-4 {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-text-primary);
+}
+
+/* テキストサイズの統一 */
+.harmonious-text-lg {
+  font-size: var(--font-size-lg);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.harmonious-text-base {
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  color: var(--color-text-primary);
+}
+
+.harmonious-text-sm {
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.harmonious-text-xs {
+  font-size: var(--font-size-xs);
+  line-height: 1.3;
+  color: var(--color-text-tertiary);
+}
+
+/* カードの統一 */
+.harmonious-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-2xl);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.harmonious-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary-light);
+}
+
+.harmonious-card-compact {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ボタンの統一 */
+.harmonious-button-primary {
+  background: var(--color-primary);
+  color: var(--color-surface);
+  font-weight: 500;
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  border: none;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.harmonious-button-primary:hover {
+  background: var(--color-text-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.harmonious-button-secondary {
+  background: var(--color-surface-tertiary);
+  color: var(--color-text-primary);
+  font-weight: 500;
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.harmonious-button-secondary:hover {
+  background: var(--color-surface-secondary);
+  border-color: var(--color-primary-light);
+}
+
+/* バッジの統一 */
+.harmonious-badge {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-light);
+}
+
+.harmonious-badge-student {
+  background: rgb(241 245 249); /* slate-50 */
+  color: var(--color-text-primary);
+}
+
+.harmonious-badge-parent {
+  background: rgb(255 241 242); /* rose-50 */
+  color: rgb(190 18 60); /* rose-700 */
+}
+
+.harmonious-badge-teacher {
+  background: rgb(236 253 245); /* emerald-50 */
+  color: rgb(4 120 87); /* emerald-700 */
+}
+
+/* グラデーションアクセント */
+.harmonious-gradient-accent {
+  background: linear-gradient(135deg, var(--color-accent-warning) 0%, rgb(251 146 60) 100%); /* amber-500 to orange-400 */
+  color: white;
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-3xl);
+  box-shadow: var(--shadow-lg);
+}
+
+/* メトリクスカードの統一 */
+.harmonious-metrics-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.harmonious-metrics-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.harmonious-metrics-value {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.harmonious-metrics-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+/* レスポンシブ調整 */
+@media (max-width: 768px) {
+  :root {
+    --font-size-4xl: 2rem; /* 32px */
+    --font-size-3xl: 1.5rem; /* 24px */
+    --spacing-2xl: 1.5rem; /* 24px */
+    --spacing-3xl: 2rem; /* 32px */
+  }
+  
+  .harmonious-card {
+    padding: var(--spacing-lg);
+  }
+}

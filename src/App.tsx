@@ -23,21 +23,21 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-stone-50 to-neutral-100">
       {/* ナビゲーション */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-slate-200/50 sticky top-0 z-10">
+      <div className="bg-white/90 backdrop-blur-sm border-b border-stone-200/60 sticky top-0 z-10 shadow-sm">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <div className="flex justify-center gap-2 flex-wrap flex-1">
               {/* 現在の役割表示 */}
               <div className="flex items-center gap-4 mr-4">
-                <span className="text-sm font-medium text-slate-600">
+                <span className="harmonious-text-sm font-medium">
                   {user!.name}さん
                 </span>
-                <div className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                  role === 'student' ? 'bg-blue-100 text-blue-800' :
-                  role === 'parent' ? 'bg-pink-100 text-pink-800' :
-                  'bg-green-100 text-green-800'
+                <div className={`harmonious-badge ${
+                  role === 'student' ? 'harmonious-badge-student' :
+                  role === 'parent' ? 'harmonious-badge-parent' :
+                  'harmonious-badge-teacher'
                 }`}>
                   {role === 'student' ? '👧 生徒' :
                    role === 'parent' ? '👨‍👩‍👧‍👦 保護者' :
@@ -50,41 +50,25 @@ function App() {
                 <>
                   <button
                     onClick={() => setCurrentView('dashboard')}
-                    className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
-                      currentView === 'dashboard' 
-                        ? 'bg-blue-500 text-white' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={currentView === 'dashboard' ? 'harmonious-button-primary' : 'harmonious-button-secondary'}
                   >
                     📊 ダッシュボード
                   </button>
                   <button
                     onClick={() => setCurrentView('form')}
-                    className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
-                      currentView === 'form' 
-                        ? 'bg-blue-500 text-white' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={currentView === 'form' ? 'harmonious-button-primary' : 'harmonious-button-secondary'}
                   >
                     📝 学習記録
                   </button>
                   <button
                     onClick={() => setCurrentView('history')}
-                    className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
-                      currentView === 'history' 
-                        ? 'bg-blue-500 text-white' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={currentView === 'history' ? 'harmonious-button-primary' : 'harmonious-button-secondary'}
                   >
                     📚 学習履歴
                   </button>
                   <button
                     onClick={() => setCurrentView('reflection')}
-                    className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
-                      currentView === 'reflection' 
-                        ? 'bg-blue-500 text-white' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={currentView === 'reflection' ? 'harmonious-button-primary' : 'harmonious-button-secondary'}
                   >
                     🤔 振り返り
                   </button>
@@ -95,41 +79,25 @@ function App() {
                 <>
                   <button
                     onClick={() => setCurrentView('dashboard')}
-                    className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
-                      currentView === 'dashboard' 
-                        ? 'bg-blue-500 text-white' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={currentView === 'dashboard' ? 'harmonious-button-primary' : 'harmonious-button-secondary'}
                   >
                     📊 ダッシュボード
                   </button>
                   <button
                     onClick={() => setCurrentView('feedback')}
-                    className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
-                      currentView === 'feedback' 
-                        ? 'bg-blue-500 text-white' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={currentView === 'feedback' ? 'harmonious-button-primary' : 'harmonious-button-secondary'}
                   >
                     💌 フィードバック
                   </button>
                   <button
                     onClick={() => setCurrentView('history')}
-                    className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
-                      currentView === 'history' 
-                        ? 'bg-blue-500 text-white' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={currentView === 'history' ? 'harmonious-button-primary' : 'harmonious-button-secondary'}
                   >
                     📚 学習履歴
                   </button>
                   <button
                     onClick={() => setCurrentView('reflection')}
-                    className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
-                      currentView === 'reflection' 
-                        ? 'bg-blue-500 text-white' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={currentView === 'reflection' ? 'harmonious-button-primary' : 'harmonious-button-secondary'}
                   >
                     🤔 振り返り
                   </button>
@@ -140,7 +108,7 @@ function App() {
             {/* ログアウトボタン */}
             <button
               onClick={logout}
-              className="px-3 py-2 rounded-lg font-medium transition-colors text-sm bg-red-100 text-red-700 hover:bg-red-200"
+              className="harmonious-button-secondary border border-red-200 text-red-600 hover:bg-red-50"
             >
               🚪 ログアウト
             </button>

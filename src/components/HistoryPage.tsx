@@ -417,11 +417,11 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-stone-50 to-neutral-100 p-4">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-center mb-2">📚 学習履歴</h1>
-          <p className="text-center text-slate-600">これまでの学習記録と応援メッセージを確認できます</p>
+        <div className="mb-8 text-center">
+          <h1 className="harmonious-header-1">📚 学習履歴</h1>
+          <p className="harmonious-text-lg">これまでの学習記録と応援メッセージを確認できます</p>
         </div>
 
         {/* タブメニュー */}

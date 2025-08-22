@@ -230,11 +230,11 @@ export default function ReflectionPage({ userRole }: ReflectionPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-stone-50 to-neutral-100 p-4">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-center mb-2">🤔 振り返り</h1>
-          <p className="text-center text-slate-600">
+        <div className="mb-8 text-center">
+          <h1 className="harmonious-header-1">🤔 振り返り</h1>
+          <p className="harmonious-text-lg">
             {userRole === 'student' 
               ? '学習を振り返って、成長につなげよう' 
               : userRole === 'teacher'

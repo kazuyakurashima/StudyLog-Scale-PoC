@@ -536,14 +536,14 @@ export default function Dashboard() {
     <div className="p-6 max-w-6xl mx-auto space-y-8">
       {/* ヘッダー */}
       <div className="text-center">
-        <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+        <h1 className="harmonious-header-1">
           📊 学習ダッシュボード
         </h1>
-        <p className="text-slate-600 text-lg">がんばりの記録を確認しよう！</p>
+        <p className="harmonious-text-lg">がんばりの記録を確認しよう！</p>
       </div>
 
       {/* 継続日数カウンター */}
-      <div className="bg-gradient-to-r from-orange-400 to-red-500 text-white rounded-2xl p-8 text-center shadow-xl">
+      <div className="harmonious-gradient-accent text-center">
         <div className="flex items-center justify-center gap-4 mb-4">
           <span className="text-6xl">🔥</span>
           <div>
@@ -577,15 +577,15 @@ export default function Dashboard() {
       {/* 成長指標 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* 今日の成果 */}
-        <div className="bg-white rounded-xl p-6 shadow-lg border">
+        <div className="harmonious-metrics-card">
           <div className="flex items-center gap-3 mb-3">
             <span className="text-2xl">📈</span>
-            <h3 className="font-bold text-lg">今日の成果</h3>
+            <h3 className="harmonious-header-4">今日の成果</h3>
           </div>
           {stats.growthMetrics.todayImprovement.percentage > 0 ? (
             <div className="text-center">
               <div className={`text-2xl font-bold ${
-                stats.growthMetrics.todayImprovement.isImprovement ? 'text-green-600' : 'text-red-600'
+                stats.growthMetrics.todayImprovement.isImprovement ? 'text-emerald-600' : 'text-rose-600'
               }`}>
                 {stats.growthMetrics.todayImprovement.isImprovement ? '+' : '-'}
                 {stats.growthMetrics.todayImprovement.percentage.toFixed(1)}%
@@ -603,13 +603,13 @@ export default function Dashboard() {
         </div>
 
         {/* 週間平均 */}
-        <div className="bg-white rounded-xl p-6 shadow-lg border">
+        <div className="harmonious-metrics-card">
           <div className="flex items-center gap-3 mb-3">
             <span className="text-2xl">📊</span>
-            <h3 className="font-bold text-lg">週間平均</h3>
+            <h3 className="harmonious-header-4">週間平均</h3>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="harmonious-metrics-value">
               {stats.growthMetrics.weeklyAverage.current}%
             </div>
             {stats.growthMetrics.weeklyAverage.previous > 0 && (
@@ -629,13 +629,13 @@ export default function Dashboard() {
         </div>
 
         {/* 連続記録更新 */}
-        <div className="bg-white rounded-xl p-6 shadow-lg border">
+        <div className="harmonious-metrics-card">
           <div className="flex items-center gap-3 mb-3">
             <span className="text-2xl">⭐</span>
-            <h3 className="font-bold text-lg">連続記録</h3>
+            <h3 className="harmonious-header-4">連続記録</h3>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">
+            <div className="harmonious-metrics-value">
               {stats.growthMetrics.consecutiveStreak}日連続
             </div>
             <div className="text-sm text-slate-600 mt-1">
@@ -645,14 +645,14 @@ export default function Dashboard() {
         </div>
 
         {/* 最も成長した科目 */}
-        <div className="bg-white rounded-xl p-6 shadow-lg border">
+        <div className="harmonious-metrics-card">
           <div className="flex items-center gap-3 mb-3">
             <span className="text-2xl">🚀</span>
-            <h3 className="font-bold text-lg">成長科目</h3>
+            <h3 className="harmonious-header-4">成長科目</h3>
           </div>
           {stats.growthMetrics.mostImprovedSubject ? (
             <div className="text-center">
-              <div className="text-lg font-bold text-green-600">
+              <div className="text-lg font-bold text-emerald-600">
                 {stats.growthMetrics.mostImprovedSubject.label}
               </div>
               <div className="text-sm text-slate-600 mt-1">
@@ -669,49 +669,49 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* 今日の記録 */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg border">
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+        <div className="harmonious-card">
+          <h2 className="harmonious-header-2 flex items-center gap-2">
             <span className="text-2xl">📅</span>
             今日の記録
           </h2>
           {stats.todayRecords.length > 0 ? (
             <div className="space-y-4">
               {stats.todayRecords.map((record) => (
-                <div key={record.id} className="bg-slate-50 p-4 rounded-xl">
+                <div key={record.id} className="harmonious-card-compact bg-stone-50">
                   <div className="flex justify-between items-start mb-3">
                     <div>
-                      <h3 className="font-semibold text-lg">
+                      <h3 className="harmonious-header-4">
                         {getSubjectLabel(record.subject)}（{getContentTypeLabel(record.content_type)}）
                       </h3>
-                      <div className="text-sm text-slate-500">
+                      <div className="harmonious-text-sm">
                         {formatStudyDateDisplay(record.study_date)}実施分 
                         {record.attempt_number > 1 && (
-                          <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+                          <span className="harmonious-badge ml-2">
                             {record.attempt_number}回目
                           </span>
                         )}
                       </div>
                     </div>
-                    <span className="text-sm text-slate-500">
+                    <span className="harmonious-text-sm">
                       {getEmotionLabel(record.emotion)}
                     </span>
                   </div>
                   
-                  <div className="text-blue-600 font-medium mb-2">
+                  <div className="harmonious-text-base font-medium mb-2">
                     現在: {record.questions_correct}/{record.questions_total}問正解
-                    <span className="ml-2 text-sm text-slate-600">
+                    <span className="ml-2 harmonious-text-sm">
                       ({Math.round((record.questions_correct / record.questions_total) * 100)}%)
                     </span>
                   </div>
 
                   {/* 履歴表示 */}
                   {record.history.length > 1 && (
-                    <div className="text-sm text-slate-600 mb-2">
+                    <div className="text-sm text-stone-600 mb-2">
                       <span className="font-medium">成績の変化:</span>
-                      <div className="mt-1 font-mono text-blue-700">
+                      <div className="mt-1 font-mono text-slate-700">
                         {formatHistoryDisplay(record.history)}
                       </div>
-                      <div className="text-xs text-slate-500 mt-1">
+                      <div className="text-xs text-stone-500 mt-1">
                         {record.history.length > 1 && (
                           <span>
                             改善: +{record.history[record.history.length - 1].accuracy - record.history[0].accuracy}%
@@ -722,7 +722,7 @@ export default function Dashboard() {
                   )}
 
                   {record.comment && (
-                    <p className="text-slate-600 text-sm mt-2 bg-white p-2 rounded">
+                    <p className="text-stone-600 text-sm mt-2 bg-white p-2 rounded">
                       {record.comment}
                     </p>
                   )}
@@ -730,7 +730,7 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-slate-500">
+            <div className="text-center py-8 text-stone-500">
               <span className="text-4xl mb-4 block">📝</span>
               <p className="text-lg">今日はまだ学習記録がありません</p>
               <p className="text-sm">がんばって記録をつけよう！</p>
@@ -739,8 +739,8 @@ export default function Dashboard() {
         </div>
 
         {/* 最近の調子 */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg border">
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+        <div className="harmonious-card">
+          <h2 className="harmonious-header-2 flex items-center gap-2">
             <span className="text-2xl">💭</span>
             最近の調子
           </h2>
@@ -762,7 +762,7 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <div className="text-center py-8 text-slate-500">
+            <div className="text-center py-8 text-stone-500">
               <span className="text-4xl mb-4 block">🤔</span>
               <p>まだデータが少ないです</p>
             </div>
@@ -818,7 +818,7 @@ export default function Dashboard() {
 
       {/* 応援メッセージ */}
       {getRecentFeedbacks().length > 0 && (
-        <div className="bg-white rounded-2xl p-6 shadow-lg border">
+        <div className="harmonious-card">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <span className="text-2xl">💌</span>
