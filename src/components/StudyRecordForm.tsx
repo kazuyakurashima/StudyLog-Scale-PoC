@@ -26,7 +26,7 @@ export default function StudyRecordForm() {
 
   // コンポーネント初期化時に今日の日付を設定
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0]
+    const today = new Date().toLocaleDateString('sv-SE') // 日本時間で正確な日付を取得
     setStudyDate(today)
   }, [])
 
@@ -44,6 +44,7 @@ export default function StudyRecordForm() {
       const { data, error } = await supabase
         .from('study_records')
         .select('*')
+        .eq('student_id', user.id)
         .eq('study_date', studyDate)
         .eq('subject', subject)
         .eq('content_type', contentType)
@@ -86,12 +87,14 @@ export default function StudyRecordForm() {
       setLoading(true)
       setMessage('')
 
-      const today = new Date().toISOString().split('T')[0]
+      const now = new Date() // 現在の日時を取得
+      const isoString = now.toISOString()
 
       const { error } = await supabase
         .from('study_records')
         .insert([{
-          date: today, // 記録をつけた日（今日）
+          student_id: user.id, // ユーザーID
+          date: isoString, // 記録をつけた日時（現在の日時）
           study_date: studyDate, // 学習内容の実施日
           subject,
           content_type: contentType,
@@ -183,7 +186,7 @@ export default function StudyRecordForm() {
             type="date"
             value={studyDate}
             onChange={(e) => setStudyDate(e.target.value)}
-            max={new Date().toISOString().split('T')[0]}
+            max={new Date().toLocaleDateString('sv-SE')}
             className="w-full text-lg p-4 border-2 border-slate-200 rounded-xl focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
             required
           />

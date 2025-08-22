@@ -4,6 +4,7 @@ import type { StudyRecord, Feedback } from '../lib/supabase'
 import PersonalizedFeedback from './PersonalizedFeedback'
 import type { StudyData, StudyHistory, SenderType } from '../lib/openai'
 import { USERS } from '../lib/auth'
+import { formatDateTimeToJST } from '../lib/utils'
 
 interface FeedbackPageProps {
   userRole: 'parent' | 'teacher'
@@ -377,10 +378,7 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
   }
 
   const formatRecordDateDisplay = (recordDate: string) => {
-    return new Date(recordDate).toLocaleDateString('ja-JP', { 
-      month: 'numeric', 
-      day: 'numeric' 
-    })
+    return formatDateTimeToJST(recordDate)
   }
 
   if (loading) {

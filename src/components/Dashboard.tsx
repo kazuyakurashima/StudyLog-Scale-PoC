@@ -117,7 +117,11 @@ export default function Dashboard() {
 
       // 3. 統計データを計算
       const today = new Date().toISOString().split('T')[0]
-      const todayRecordsRaw = allRecordsData?.filter(record => record.date === today) || []
+      const todayRecordsRaw = allRecordsData?.filter(record => {
+        // TIMESTAMP型の場合、日付部分のみを比較
+        const recordDate = new Date(record.date).toISOString().split('T')[0]
+        return recordDate === today
+      }) || []
 
       // 今日の記録を拡張形式で処理
       const todayRecords = await processTodayRecords(todayRecordsRaw, allRecordsData || [])
@@ -219,8 +223,10 @@ export default function Dashboard() {
     // 今日の日付を取得
     const today = new Date().toISOString().split('T')[0]
     
-    // 日付だけを重複なしで抽出し、降順ソート（最新が先頭）
-    const uniqueDates = Array.from(new Set(records.map(r => r.date))).sort().reverse()
+    // TIMESTAMP型の場合、日付部分のみを抽出
+    const uniqueDates = Array.from(new Set(
+      records.map(r => new Date(r.date).toISOString().split('T')[0])
+    )).sort().reverse()
 
     if (uniqueDates.length === 0) return 0
 
@@ -247,8 +253,10 @@ export default function Dashboard() {
   const calculateCumulativeDays = (records: StudyRecord[]): number => {
     if (!records.length) return 0
 
-    // 日付だけを重複なしで抽出（全期間の学習日数をカウント）
-    const uniqueDates = Array.from(new Set(records.map(r => r.date))).sort()
+    // TIMESTAMP型の場合、日付部分のみを抽出（全期間の学習日数をカウント）
+    const uniqueDates = Array.from(new Set(
+      records.map(r => new Date(r.date).toISOString().split('T')[0])
+    )).sort()
 
     return uniqueDates.length
   }
@@ -284,7 +292,8 @@ export default function Dashboard() {
     // 日付ごとの主要な感情を取得（直近5日間）
     const dateGroups = new Map<string, StudyRecord[]>()
     records.forEach(record => {
-      const date = record.date
+      // TIMESTAMP型の場合、日付部分のみを取得
+      const date = new Date(record.date).toISOString().split('T')[0]
       if (!dateGroups.has(date)) {
         dateGroups.set(date, [])
       }
@@ -313,8 +322,14 @@ export default function Dashboard() {
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     
     // 今日の成果（昨日との比較）
-    const todayRecords = records.filter(r => r.date === today)
-    const yesterdayRecords = records.filter(r => r.date === yesterday)
+    const todayRecords = records.filter(r => {
+      const recordDate = new Date(r.date).toISOString().split('T')[0]
+      return recordDate === today
+    })
+    const yesterdayRecords = records.filter(r => {
+      const recordDate = new Date(r.date).toISOString().split('T')[0]
+      return recordDate === yesterday
+    })
     
     const todayAccuracy = todayRecords.length > 0 ? 
       todayRecords.reduce((sum, r) => sum + (r.questions_correct / r.questions_total), 0) / todayRecords.length * 100 : 0

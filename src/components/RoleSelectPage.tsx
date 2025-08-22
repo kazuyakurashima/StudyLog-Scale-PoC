@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, UserRole } from '../lib/auth';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
+import { supabase } from '../lib/supabase';
 
 interface RoleSelectPageProps {
   user: User;
@@ -51,6 +52,33 @@ const roleOptions: RoleOption[] = [
 export const RoleSelectPage: React.FC<RoleSelectPageProps> = ({ user, onRoleSelect }) => {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isFirstTimeUser, setIsFirstTimeUser] = useState<boolean | null>(null);
+
+  // 初回ユーザーかどうかをチェック
+  useEffect(() => {
+    const checkFirstTimeUser = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('study_records')
+          .select('id')
+          .eq('student_id', user.id)
+          .limit(1);
+        
+        if (error) {
+          console.error('学習記録確認エラー:', error);
+          setIsFirstTimeUser(true); // エラー時は初回として扱う
+          return;
+        }
+        
+        setIsFirstTimeUser(!data || data.length === 0);
+      } catch (error) {
+        console.error('初回ユーザー確認エラー:', error);
+        setIsFirstTimeUser(true);
+      }
+    };
+
+    checkFirstTimeUser();
+  }, [user.id]);
 
   const handleRoleSelect = async (role: UserRole) => {
     setSelectedRole(role);
@@ -88,7 +116,7 @@ export const RoleSelectPage: React.FC<RoleSelectPageProps> = ({ user, onRoleSele
               <span className="text-3xl text-white font-bold">{user.name[0]}</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
-              おかえりなさい！
+              {isFirstTimeUser === null ? '...' : isFirstTimeUser ? 'はじめまして！' : 'おかえりなさい！'}
             </h1>
             <p className="text-2xl font-bold text-slate-700 mb-2">{user.name}さん</p>
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm border border-slate-200 rounded-full shadow-lg">
@@ -96,7 +124,9 @@ export const RoleSelectPage: React.FC<RoleSelectPageProps> = ({ user, onRoleSele
               <span className="text-sm font-bold text-slate-800">{user.id}</span>
             </div>
           </div>
-          <p className="text-xl text-slate-600 font-medium">どのモードで使用しますか？</p>
+          <p className="text-xl text-slate-600 font-medium">
+            {isFirstTimeUser === null ? '' : isFirstTimeUser ? 'StudyLogへようこそ！どのモードで使用しますか？' : 'どのモードで使用しますか？'}
+          </p>
         </div>
         
         {/* Role Selection Grid */}

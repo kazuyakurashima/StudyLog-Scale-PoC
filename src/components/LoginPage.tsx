@@ -51,7 +51,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 <span className="text-2xl text-white font-bold animate-bounce-in">✨</span>
               </div>
               <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2 text-shimmer">
-                StudySpark
+                StudyLog
               </h1>
               <p className="text-slate-500 text-lg font-medium animate-fade-in-delay animation-delay-200">学習の旅を始めよう</p>
             </div>
@@ -115,7 +115,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           {/* Info */}
           <div className="mt-6 p-4 bg-slate-50/50 backdrop-blur-sm rounded-2xl border border-slate-200">
             <p className="text-center text-sm text-slate-600">
-              💡 お持ちの会員番号を入力してログインしてください
+              💡 こちらに会員番号を入力してログインしてください
             </p>
           </div>
         </Card>
@@ -123,7 +123,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       
       {/* Footer */}
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
-        <p className="text-slate-400 text-sm font-medium">🎓 あなたの学習を応援します</p>
+        <p className="text-slate-400 text-sm font-medium">🎓 東進育英舎　日立校</p>
       </div>
     </div>
   );
