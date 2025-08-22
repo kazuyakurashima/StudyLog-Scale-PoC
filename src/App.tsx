@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import StudyRecordForm from "./components/StudyRecordForm"
 import Dashboard from "./components/Dashboard"
 import FeedbackPage from "./components/FeedbackPage"
@@ -14,6 +14,13 @@ import "./styles/animations.css"
 function App() {
   const [currentView, setCurrentView] = useState<'dashboard' | 'form' | 'feedback' | 'history' | 'reflection' | 'teacher-records'>('dashboard')
   const { isAuthenticated, user, role, login, selectRole, logout } = useAuth()
+
+  // ロール変更時に適切な初期画面に設定
+  useEffect(() => {
+    if (role) {
+      setCurrentView('dashboard')
+    }
+  }, [role])
 
   if (!isAuthenticated) {
     return <LoginPage onLogin={login} />
@@ -127,8 +134,8 @@ function App() {
 
       {/* メインコンテンツ */}
       {currentView === 'dashboard' && <Dashboard />}
-      {currentView === 'form' && <StudyRecordForm />}
-      {currentView === 'feedback' && (
+      {currentView === 'form' && role === 'student' && <StudyRecordForm />}
+      {currentView === 'feedback' && (role === 'parent' || role === 'teacher') && (
         <FeedbackPage userRole={role === 'parent' ? 'parent' : 'teacher'} />
       )}
       {currentView === 'history' && <HistoryPage />}
