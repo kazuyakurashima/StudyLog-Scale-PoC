@@ -196,18 +196,15 @@ export default function Dashboard() {
   }
 
   const processTodayRecords = async (todayRecords: StudyRecord[], allRecords: StudyRecord[]): Promise<TodayRecord[]> => {
-    const processedRecords = new Map<string, TodayRecord>()
+    const processedRecords: TodayRecord[] = []
 
     for (const record of todayRecords) {
-      const key = `${record.study_date}-${record.subject}-${record.content_type}`
-      
-      // 同じ学習内容の履歴を取得
+      // 同じ学習内容（学習日+科目+授業/宿題）の履歴を取得
       const history = allRecords
         .filter(r => 
           r.study_date === record.study_date && 
           r.subject === record.subject && 
-          r.content_type === record.content_type &&
-          r.date <= record.date
+          r.content_type === record.content_type
         )
         .sort((a, b) => a.attempt_number - b.attempt_number)
         .map(r => ({
@@ -219,31 +216,22 @@ export default function Dashboard() {
           emotion: r.emotion
         }))
 
-      // 最新の記録を使用（同日に複数記録がある場合）
-      const latestRecord = allRecords
-        .filter(r => 
-          r.study_date === record.study_date && 
-          r.subject === record.subject && 
-          r.content_type === record.content_type &&
-          r.date === record.date
-        )
-        .sort((a, b) => b.attempt_number - a.attempt_number)[0] || record
-
-      processedRecords.set(key, {
-        id: latestRecord.id,
-        study_date: latestRecord.study_date,
-        subject: latestRecord.subject,
-        content_type: latestRecord.content_type,
-        attempt_number: latestRecord.attempt_number,
-        questions_total: latestRecord.questions_total,
-        questions_correct: latestRecord.questions_correct,
-        emotion: latestRecord.emotion,
-        comment: latestRecord.comment,
+      processedRecords.push({
+        id: record.id,
+        study_date: record.study_date,
+        subject: record.subject,
+        content_type: record.content_type,
+        attempt_number: record.attempt_number,
+        questions_total: record.questions_total,
+        questions_correct: record.questions_correct,
+        emotion: record.emotion,
+        comment: record.comment,
         history
       })
     }
 
-    return Array.from(processedRecords.values())
+    // 最新の記録を先頭にソート（記録日時順）
+    return processedRecords.sort((a, b) => b.id - a.id)
   }
 
   const calculateContinueDays = (records: StudyRecord[]): number => {
