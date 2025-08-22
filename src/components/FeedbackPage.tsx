@@ -69,10 +69,11 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
         throw recordsError
       }
 
-      // フィードバックを取得
+      // フィードバックを取得（選択された学生のもののみ）
       const { data: allFeedbacks, error: feedbacksError } = await supabase
         .from('feedbacks')
         .select('*')
+        .eq('student_id', selectedStudentId)
         .order('created_at', { ascending: false })
 
       if (feedbacksError) {
@@ -129,7 +130,17 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
 
   const getStudyHistoryData = async (recordId: number): Promise<StudyHistory> => {
     try {
-      // 過去30日間のデータを取得
+      // まず対象の記録を取得して学生IDを確認
+      const { data: targetRecord, error: targetError } = await supabase
+        .from('study_records')
+        .select('student_id')
+        .eq('id', recordId)
+        .single()
+
+      if (targetError) throw targetError
+      if (!targetRecord?.student_id) throw new Error('学生IDが見つかりません')
+
+      // 過去30日間のその学生のデータを取得
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
       const dateLimit = thirtyDaysAgo.toISOString().split('T')[0]
@@ -137,6 +148,7 @@ export default function FeedbackPage({ userRole }: FeedbackPageProps) {
       const { data: records, error } = await supabase
         .from('study_records')
         .select('*')
+        .eq('student_id', targetRecord.student_id)
         .gte('date', dateLimit)
         .order('date', { ascending: false })
 

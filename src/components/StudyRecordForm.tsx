@@ -30,19 +30,25 @@ export default function StudyRecordForm() {
     setStudyDate(today)
   }, [])
 
-  // 学習実施日、科目、種別が変更された時に履歴をチェック
+  // 学習実施日、科目、種別、ユーザーが変更された時に履歴をチェック
   useEffect(() => {
-    if (studyDate && subject && contentType) {
+    if (studyDate && subject && contentType && user?.id) {
       checkExistingRecords()
+    } else {
+      // ユーザーがいない場合は履歴をクリア
+      setExistingRecords([])
+      setNextAttemptNumber(1)
     }
-  }, [studyDate, subject, contentType])
+  }, [studyDate, subject, contentType, user?.id])
 
   const checkExistingRecords = async () => {
+    if (!user?.id) return
     
     try {
       const { data, error } = await supabase
         .from('study_records')
         .select('*')
+        .eq('student_id', user.id)
         .eq('study_date', studyDate)
         .eq('subject', subject)
         .eq('content_type', contentType)

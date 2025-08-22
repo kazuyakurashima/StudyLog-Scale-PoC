@@ -4,6 +4,7 @@ import Dashboard from "./components/Dashboard"
 import FeedbackPage from "./components/FeedbackPage"
 import HistoryPage from "./components/HistoryPage"
 import ReflectionPage from "./components/ReflectionPage"
+import TeacherRecordsPage from "./components/TeacherRecordsPage"
 import { LoginPage } from "./components/LoginPage"
 import { RoleSelectPage } from "./components/RoleSelectPage"
 import { useAuth } from "./lib/useAuth"
@@ -11,7 +12,7 @@ import "./App.css"
 import "./styles/animations.css"
 
 function App() {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'form' | 'feedback' | 'history' | 'reflection'>('dashboard')
+  const [currentView, setCurrentView] = useState<'dashboard' | 'form' | 'feedback' | 'history' | 'reflection' | 'teacher-records'>('dashboard')
   const { isAuthenticated, user, role, login, selectRole, logout } = useAuth()
 
   if (!isAuthenticated) {
@@ -101,6 +102,14 @@ function App() {
                   >
                     🤔 振り返り
                   </button>
+                  {role === 'teacher' && (
+                    <button
+                      onClick={() => setCurrentView('teacher-records')}
+                      className={currentView === 'teacher-records' ? 'harmonious-button-primary' : 'harmonious-button-secondary'}
+                    >
+                      📊 記録管理
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -126,6 +135,7 @@ function App() {
       {currentView === 'reflection' && (
         <ReflectionPage userRole={role} />
       )}
+      {currentView === 'teacher-records' && role === 'teacher' && <TeacherRecordsPage />}
     </div>
   )
 }
